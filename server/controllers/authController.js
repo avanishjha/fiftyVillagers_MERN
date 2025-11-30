@@ -5,7 +5,7 @@ require('dotenv').config();
 
 // Register User
 exports.register = async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     try {
         // Check if user exists
@@ -19,17 +19,8 @@ exports.register = async (req, res) => {
         const passwordHash = await bcrypt.hash(password, salt);
 
         // Insert user
-        // Default role to 'student'
-        let userRole = 'student';
-
-        // If requesting admin role, verify secret
-        if (role === 'admin') {
-            if (req.body.adminSecret === process.env.ADMIN_SECRET) {
-                userRole = 'admin';
-            } else {
-                return res.status(403).json({ msg: 'Invalid Admin Secret' });
-            }
-        }
+        // Always default to 'student'. Admin creation is disabled via API.
+        const userRole = 'student';
 
         const newUser = await pool.query(
             'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
