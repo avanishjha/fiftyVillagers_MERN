@@ -6,6 +6,18 @@ export default defineConfig({
   plugins: [react()],
   server: {
     allowedHosts: ["nonrustic-uriniferous-rico.ngrok-free.dev"],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/uploads': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 
 })

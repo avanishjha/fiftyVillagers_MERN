@@ -1,50 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { ThemeProvider } from './context/ThemeContext';
-import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import About from './components/About';
-import ImageGallery from './components/ImageGallery';
-import Programs from './components/Programs';
-import Stats from './components/Stats';
-import Contact from './components/Contact';
-import Footer from './components/Footer';
-import Preloader from './components/Preloader';
-import Marquee from './components/Marquee';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import PublicLayout from './layouts/PublicLayout';
+import AdminLayout from './layouts/AdminLayout';
+import Home from './pages/public/Home';
+import Login from './pages/admin/Login';
+import Dashboard from './pages/admin/Dashboard';
+import BlogManager from './pages/admin/BlogManager';
+import BlogEditor from './pages/admin/BlogEditor';
+import GalleryManager from './pages/admin/GalleryManager';
+import BlogList from './pages/public/BlogList';
+import BlogDetail from './pages/public/BlogDetail';
+import Gallery from './pages/public/Gallery';
 
 function App() {
-  // Check if preloader has already been shown in this session
-  const hasLoaded = sessionStorage.getItem('hasLoaded') === 'true';
-  const [isLoading, setIsLoading] = useState(true); //!hasLoaded
-
   return (
-    <ThemeProvider>
-      <AnimatePresence mode="wait">
-        {isLoading && <Preloader onComplete={() => setIsLoading(false)} zoom={1} />}
-      </AnimatePresence>
+    <Router>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<PublicLayout />}>
+          <Route index element={<Home />} />
+          <Route path="blogs" element={<BlogList />} />
+          <Route path="blogs/:id" element={<BlogDetail />} />
+          <Route path="gallery" element={<Gallery />} />
+        </Route>
 
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-sans selection:bg-blue-500 selection:text-white transition-colors duration-500">
-        {!isLoading && (
-          <div className="zoom-[0.8]">
-            <div className="pointer-events-auto">
-              <Navbar />
-            </div>
-          </div>
-        )}
-        <div className="zoom-[0.8]">
-          <main>
-            <Hero />
-            <Marquee />
-            <About />
-            <ImageGallery />
-            <Stats />
-            <Programs />
-            <Contact />
-          </main>
-          <Footer />
-        </div>
-      </div>
-    </ThemeProvider>
+        {/* Admin Routes */}
+        <Route path="/admin/login" element={<Login />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="blogs" element={<BlogManager />} />
+          <Route path="blogs/new" element={<BlogEditor />} />
+          <Route path="blogs/edit/:id" element={<BlogEditor />} />
+          <Route path="gallery" element={<GalleryManager />} />
+        </Route>
+      </Routes>
+    </Router>
   );
 }
 

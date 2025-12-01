@@ -1,3 +1,11 @@
+-- 1. Create Schema
+CREATE SCHEMA IF NOT EXISTS app;
+
+-- 2. Set Search Path
+ALTER DATABASE fifty_villagers SET search_path TO app, public;
+SET search_path TO app, public;
+
+-- 3. Create Tables
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -119,3 +127,14 @@ CREATE TABLE IF NOT EXISTS correction_requests (
     note TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 4. Seed Admin User
+-- Password: FifyAdmin@2025#Secure
+INSERT INTO users (name, email, password_hash, role)
+VALUES (
+  'Super Admin', 
+  'admin@fiftyvillagers.com', 
+  '$2b$10$MBL2eDz/L2i6JJSu/JDEzehQC164OM8uFERXPpTpxnXKe/wJxh/hC',
+  'admin'
+)
+ON CONFLICT (email) DO NOTHING;

@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require('express'); // Trigger restart
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
@@ -16,6 +16,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/upload', require('./routes/upload'));
+app.use('/api/blogs', require('./routes/blogs'));
+app.use('/api/gallery', require('./routes/gallery'));
 
 app.get('/', (req, res) => {
     res.send('Fifty Villagers API is running');

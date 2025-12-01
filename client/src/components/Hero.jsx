@@ -57,7 +57,7 @@ const Hero = () => {
                 variants={container}
                 initial="hidden"
                 animate="show"
-                className="max-w-5xl mx-auto text-center text-white mt-12 md:mt-20"
+                className="max-w-5xl mx-auto text-center text-white pt-24 md:pt-8"
             >
                 <motion.h2 variants={item} className="text-emerald-400 font-bold tracking-[0.3em] uppercase mb-4 md:mb-6 text-xs md:text-base font-sans">
                     Service Organization
