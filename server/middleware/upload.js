@@ -1,11 +1,12 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const sanitize = require('sanitize-filename');
 
 // Ensure uploads directory exists
-const uploadDir = 'uploads';
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
+    fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // Configure storage
@@ -14,27 +15,26 @@ const storage = multer.diskStorage({
         cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-        // Create unique filename: fieldname-timestamp-random.ext
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+        const ext = path.extname(file.originalname).toLowerCase();
+        const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+        cb(null, sanitize(name));
     }
 });
 
-// File filter (optional, but good practice)
+// File filter
 const fileFilter = (req, file, cb) => {
-    // Accept images and PDFs
-    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
-        cb(null, true);
-    } else {
-        cb(new Error('Only images and PDFs are allowed!'), false);
+    const allowed = /jpeg|jpg|png|gif|webp|svg|pdf/;
+    if (allowed.test(file.mimetype) || allowed.test(path.extname(file.originalname).toLowerCase())) {
+        return cb(null, true);
     }
+    cb(new Error('Only images and PDFs are allowed!'), false);
 };
 
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB limit
+        fileSize: parseInt(process.env.MAX_UPLOAD_MB || 5) * 1024 * 1024
     }
 });
 

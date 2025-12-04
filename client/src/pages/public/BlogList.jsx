@@ -4,24 +4,29 @@ import { motion } from 'framer-motion';
 import { Calendar, MessageCircle, User, ArrowRight } from 'lucide-react';
 import api from '../../api/axios';
 import EmptyState from '../../components/EmptyState';
+import Pagination from '../../components/Pagination';
 
 const BlogList = () => {
     const [blogs, setBlogs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [pagination, setPagination] = useState({ page: 1, limit: 9, totalPages: 1 });
 
     useEffect(() => {
-        const fetchBlogs = async () => {
-            try {
-                const res = await api.get('/blogs');
-                setBlogs(res.data);
-            } catch (err) {
-                console.error('Failed to fetch blogs', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchBlogs();
-    }, []);
+        fetchBlogs(pagination.page);
+    }, [pagination.page]);
+
+    const fetchBlogs = async (page = 1) => {
+        try {
+            setLoading(true);
+            const res = await api.get(`/blogs?page=${page}&limit=${pagination.limit}`);
+            setBlogs(res.data.data);
+            setPagination(prev => ({ ...prev, ...res.data.pagination }));
+        } catch (err) {
+            console.error('Failed to fetch blogs', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (loading) return (
         <div className="min-h-screen flex justify-center items-center bg-gray-50 dark:bg-gray-900">
@@ -96,6 +101,11 @@ const BlogList = () => {
                         ))}
                     </div>
                 )}
+                <Pagination
+                    currentPage={pagination.page}
+                    totalPages={pagination.totalPages}
+                    onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
+                />
             </div>
         </div>
     );

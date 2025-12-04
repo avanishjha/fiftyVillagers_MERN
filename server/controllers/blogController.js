@@ -1,8 +1,16 @@
 const { pool } = require('../config/db');
 
 // Get all blogs (Public)
+// Get all blogs (Public)
 exports.getAllBlogs = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 9;
+        const offset = (page - 1) * limit;
+
+        const countResult = await pool.query('SELECT COUNT(*) FROM blogs');
+        const total = parseInt(countResult.rows[0].count);
+
         const result = await pool.query(`
             SELECT b.*, u.name as author_name,
             (SELECT COUNT(*) FROM blog_comments WHERE blog_id = b.id) as comment_count,
@@ -10,8 +18,18 @@ exports.getAllBlogs = async (req, res) => {
             FROM blogs b
             LEFT JOIN users u ON b.author_id = u.id
             ORDER BY b.created_at DESC
-        `);
-        res.json(result.rows);
+            LIMIT $1 OFFSET $2
+        `, [limit, offset]);
+
+        res.json({
+            data: result.rows,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

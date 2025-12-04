@@ -6,15 +6,19 @@ require('dotenv').config();
 // Register User
 exports.register = async (req, res) => {
     const { name, email, password } = req.body;
+    console.log('Register request received:', { name, email });
 
     try {
         // Check if user exists
+        console.log('Checking if user exists...');
         const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (userExists.rows.length > 0) {
+            console.log('User already exists');
             return res.status(400).json({ msg: 'User already exists' });
         }
 
         // Hash password
+        console.log('Hashing password...');
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
@@ -22,10 +26,12 @@ exports.register = async (req, res) => {
         // Always default to 'student'. Admin creation is disabled via API.
         const userRole = 'student';
 
+        console.log('Inserting user into DB...');
         const newUser = await pool.query(
             'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
             [name, email, passwordHash, userRole]
         );
+        console.log('User inserted:', newUser.rows[0]);
 
         // Create JWT Payload
         const payload = {
@@ -36,18 +42,24 @@ exports.register = async (req, res) => {
         };
 
         // Sign Token
+        console.log('Signing JWT...');
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
             { expiresIn: '5d' }, // Token expires in 5 days
             (err, token) => {
-                if (err) throw err;
+                if (err) {
+                    console.error("JWT Sign Error:", err);
+                    return res.status(500).send('Server error during token generation');
+                }
+                console.log('JWT generated successfully');
                 res.json({ token, user: newUser.rows[0] });
             }
         );
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error('Register Error:', err.message);
+        console.error(err.stack);
+        res.status(500).json({ msg: 'Server error', error: err.message });
     }
 };
 
@@ -82,7 +94,10 @@ exports.login = async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '5d' },
             (err, token) => {
-                if (err) throw err;
+                if (err) {
+                    console.error("JWT Sign Error:", err);
+                    return res.status(500).send('Server error during token generation');
+                }
                 res.json({ token, user: { id: user.rows[0].id, name: user.rows[0].name, email: user.rows[0].email, role: user.rows[0].role } });
             }
         );

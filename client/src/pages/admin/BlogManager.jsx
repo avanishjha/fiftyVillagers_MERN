@@ -4,19 +4,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, FileText, Calendar, User } from 'lucide-react';
 import api from '../../api/axios';
 import EmptyState from '../../components/EmptyState';
+import Pagination from '../../components/Pagination';
 
 const BlogManager = () => {
     const [blogs, setBlogs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [pagination, setPagination] = useState({ page: 1, limit: 10, totalPages: 1 });
 
     useEffect(() => {
-        fetchBlogs();
-    }, []);
+        fetchBlogs(pagination.page);
+    }, [pagination.page]);
 
-    const fetchBlogs = async () => {
+    const fetchBlogs = async (page = 1) => {
         try {
-            const res = await api.get('/blogs');
-            setBlogs(res.data);
+            setLoading(true);
+            const res = await api.get(`/blogs?page=${page}&limit=${pagination.limit}`);
+            setBlogs(res.data.data);
+            setPagination(prev => ({ ...prev, ...res.data.pagination }));
         } catch (err) {
             console.error('Failed to fetch blogs', err);
         } finally {
@@ -143,6 +147,13 @@ const BlogManager = () => {
                             </AnimatePresence>
                         </tbody>
                     </table>
+                    <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                        <Pagination
+                            currentPage={pagination.page}
+                            totalPages={pagination.totalPages}
+                            onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
+                        />
+                    </div>
                 </div>
             )}
         </div>

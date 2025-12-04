@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import { Sun, Moon, Menu, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 
 const Navbar = () => {
@@ -63,6 +64,9 @@ const Navbar = () => {
                         {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                     </button>
 
+                    <Link to="/instructions" className="bg-emerald-600 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-emerald-700 transition-colors font-sans shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
+                        Apply Now
+                    </Link>
                     <button className="bg-black dark:bg-white text-white dark:text-black px-6 py-2.5 rounded-full font-bold text-sm hover:opacity-80 transition-opacity font-sans shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
                         Donate
                     </button>
@@ -104,7 +108,10 @@ const Navbar = () => {
                                 {item.name}
                             </a>
                         ))}
-                        <button className="bg-emerald-700 text-white w-full py-4 rounded-lg font-bold font-sans shadow-lg">
+                        <Link to="/instructions" className="bg-emerald-600 text-white w-full py-4 rounded-lg font-bold font-sans shadow-lg text-center block">
+                            Apply Now
+                        </Link>
+                        <button className="bg-black dark:bg-white text-white dark:text-black w-full py-4 rounded-lg font-bold font-sans shadow-lg">
                             Donate Now
                         </button>
                     </div>

@@ -8,9 +8,17 @@ import Dashboard from './pages/admin/Dashboard';
 import BlogManager from './pages/admin/BlogManager';
 import BlogEditor from './pages/admin/BlogEditor';
 import GalleryManager from './pages/admin/GalleryManager';
+import ApplicationManager from './pages/admin/ApplicationManager';
 import BlogList from './pages/public/BlogList';
 import BlogDetail from './pages/public/BlogDetail';
 import Gallery from './pages/public/Gallery';
+import ApplicationForm from './pages/student/ApplicationForm';
+import StudentLogin from './pages/student/StudentLogin';
+import StudentRegister from './pages/student/StudentRegister';
+import StudentDashboard from './pages/student/StudentDashboard';
+import AdmitCard from './pages/student/AdmitCard';
+import ApplicationInstructions from './pages/student/ApplicationInstructions';
+import StudentLayout from './layouts/StudentLayout';
 
 function App() {
   return (
@@ -22,6 +30,16 @@ function App() {
           <Route path="blogs" element={<BlogList />} />
           <Route path="blogs/:id" element={<BlogDetail />} />
           <Route path="gallery" element={<Gallery />} />
+          <Route path="instructions" element={<ApplicationInstructions />} />
+        </Route>
+
+        {/* Student Routes */}
+        <Route path="/student/login" element={<StudentLogin />} />
+        <Route path="/student/register" element={<StudentRegister />} />
+        <Route path="/student" element={<StudentLayout />}>
+          <Route path="apply" element={<ApplicationForm />} />
+          <Route path="dashboard" element={<StudentDashboard />} />
+          <Route path="admit-card" element={<AdmitCard />} />
         </Route>
 
         {/* Admin Routes */}
@@ -32,6 +50,7 @@ function App() {
           <Route path="blogs/new" element={<BlogEditor />} />
           <Route path="blogs/edit/:id" element={<BlogEditor />} />
           <Route path="gallery" element={<GalleryManager />} />
+          <Route path="applications" element={<ApplicationManager />} />
         </Route>
       </Routes>
     </Router>

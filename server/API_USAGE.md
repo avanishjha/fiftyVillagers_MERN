@@ -1,53 +1,24 @@
-# API Testing Guide (Postman)
+# API Usage Documentation
 
-## Base URL
-`http://localhost:5000`
+## Authentication
+- **POST /api/auth/register**: Register a new student.
+- **POST /api/auth/login**: Login for students and admins.
+- **GET /api/auth/me**: Get current user details.
 
-## 1. Register a Student
-*   **Method:** `POST`
-*   **URL:** `http://localhost:5000/api/auth/register`
-*   **Headers:** `Content-Type: application/json`
-*   **Body (JSON):**
-    ```json
-    {
-      "name": "John Doe",
-      "email": "student@example.com",
-      "password": "password123",
-      "role": "student"
-    }
-    ```
+## Applications (Student)
+- **POST /api/applications**: Create or update application.
+- **GET /api/applications/my-application**: Get current student's application.
 
-## 2. Register an Admin
-To create an admin, simply change the role to "admin".
-*   **Method:** `POST`
-*   **URL:** `http://localhost:5000/api/auth/register`
-*   **Headers:** `Content-Type: application/json`
-*   **Body (JSON):**
-    ```json
-    {
-      "name": "Admin User",
-      "email": "admin@example.com",
-      "password": "adminpassword",
-      "role": "admin"
-    }
-    ```
+## Payment
+- **POST /api/payment/create-order**: Create a Razorpay order.
+  - Body: `{ amount: 500 }`
+- **POST /api/payment/verify-payment**: Verify payment and auto-approve application.
+  - Body: `{ razorpay_order_id, razorpay_payment_id, razorpay_signature, applicationId }`
 
-## 3. Login
-*   **Method:** `POST`
-*   **URL:** `http://localhost:5000/api/auth/login`
-*   **Headers:** `Content-Type: application/json`
-*   **Body (JSON):**
-    ```json
-    {
-      "email": "admin@example.com",
-      "password": "adminpassword"
-    }
-    ```
-*   **Response:** You will receive a `token`. Copy this token.
+## Admin
+- **GET /api/admin/applications**: List all applications (with pagination).
+- **PUT /api/admin/applications/:id/status**: Update application status manually.
 
-## 4. Access Protected Routes
-For routes that require login (like getting user profile):
-*   **Method:** `GET`
-*   **URL:** `http://localhost:5000/api/auth/me`
-*   **Headers:**
-    *   `Authorization`: `Bearer <PASTE_YOUR_TOKEN_HERE>`
+## Public
+- **GET /api/blogs**: List blogs.
+- **GET /api/gallery**: List gallery images.
