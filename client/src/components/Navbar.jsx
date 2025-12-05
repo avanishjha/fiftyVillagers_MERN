@@ -3,6 +3,7 @@ import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import { Sun, Moon, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import logo from '../assets/logo.jpg';
 
 const Navbar = () => {
     const [hidden, setHidden] = useState(false);
@@ -40,8 +41,9 @@ const Navbar = () => {
             className="fixed top-0 w-full z-50 bg-white dark:bg-gray-900 shadow-md transition-colors duration-500"
         >
             <div className="container mx-auto px-6 py-6 flex justify-between items-center">
-                <a href="/" className="text-2xl font-bold text-gray-900 dark:text-white tracking-tighter font-sans">
-                    Fifty<span className="text-emerald-600 dark:text-emerald-400">Villagers</span>
+                <a href="/" className="flex items-center gap-3 text-2xl font-bold text-gray-900 dark:text-white tracking-tighter font-sans">
+                    <img src={logo} alt="Fifty Villagers Logo" className="h-10 w-10 rounded-lg object-contain" />
+                    <span>Fifty<span className="text-emerald-600 dark:text-emerald-400">Villagers</span></span>
                 </a>
 
                 {/* Desktop Menu */}

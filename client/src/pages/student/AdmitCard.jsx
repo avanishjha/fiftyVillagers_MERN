@@ -4,6 +4,7 @@ import { Download, Printer, ArrowLeft } from 'lucide-react';
 import api from '../../api/axios';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import logo from '../../assets/logo.jpg';
 
 const AdmitCard = () => {
     const [application, setApplication] = useState(null);
@@ -90,8 +91,8 @@ const AdmitCard = () => {
                     {/* Header */}
                     <div className="border-b-2 border-gray-800 pb-6 mb-6 flex justify-between items-center">
                         <div className="flex items-center gap-4">
-                            {/* Logo Placeholder */}
-                            <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center text-white font-bold text-xl">FV</div>
+                            {/* Logo */}
+                            <img src={logo} alt="Logo" className="w-20 h-20 object-contain" />
                             <div>
                                 <h1 className="text-2xl font-bold uppercase tracking-wider">Fifty Villagers</h1>
                                 <p className="text-sm font-semibold text-gray-600">Scholarship Examination 2025</p>
