@@ -129,8 +129,8 @@ const Dashboard = () => {
                     color="bg-purple-500"
                 />
                 <QuickAction
-                    title="Review Applications"
-                    desc="Check pending student applications and approve admit cards."
+                    title="View Applications"
+                    desc="View student applications and check their status."
                     link="/admin/applications"
                     icon={Users}
                     color="bg-emerald-500"

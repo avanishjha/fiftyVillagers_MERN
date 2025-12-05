@@ -1,6 +1,21 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+const requiredEnvVars = [
+    'DB_USER',
+    'DB_HOST',
+    'DB_NAME',
+    'DB_PASSWORD',
+    'DB_PORT'
+];
+
+const missingVars = requiredEnvVars.filter(key => !process.env[key]);
+
+if (missingVars.length > 0) {
+    console.error(`CRITICAL ERROR: Missing required environment variables: ${missingVars.join(', ')}`);
+    process.exit(1);
+}
+
 const pool = new Pool({
     user: process.env.DB_USER,
     host: process.env.DB_HOST,

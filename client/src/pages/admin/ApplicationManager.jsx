@@ -12,12 +12,7 @@ const ApplicationManager = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [expandedId, setExpandedId] = useState(null);
-    const [actionLoading, setActionLoading] = useState(null);
     const [pagination, setPagination] = useState({ page: 1, limit: 10, totalPages: 1 });
-
-    // Correction Modal State
-    const [correctionId, setCorrectionId] = useState(null);
-    const [correctionNote, setCorrectionNote] = useState('');
 
     useEffect(() => {
         fetchApplications(pagination.page);
@@ -52,42 +47,7 @@ const ApplicationManager = () => {
         }
     };
 
-    const handleGenerateAdmitCard = async (id) => {
-        try {
-            setActionLoading(id);
-            await api.post('/exam/generate-admit-card', { applicationId: id });
-            // Refresh list
-            fetchApplications(pagination.page);
-        } catch (err) {
-            console.error("Failed to generate admit card", err);
-            alert("Failed to generate admit card");
-        } finally {
-            setActionLoading(null);
-        }
-    };
 
-    const handleStatusUpdate = async (id, status, notes = null) => {
-        if (!window.confirm(`Are you sure you want to mark this application as ${status}?`)) return;
-
-        setActionLoading(id);
-        try {
-            const res = await api.put(`/applications/${id}/status`, {
-                status,
-                correction_notes: notes
-            });
-
-            setApplications(apps => apps.map(app =>
-                app.id === id ? { ...app, status: res.data.status, correction_notes: res.data.correction_notes } : app
-            ));
-            setCorrectionId(null);
-            setCorrectionNote('');
-        } catch (err) {
-            console.error(err);
-            alert('Failed to update status');
-        } finally {
-            setActionLoading(null);
-        }
-    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -150,7 +110,7 @@ const ApplicationManager = () => {
                                 <tr>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Student</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Class</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
@@ -252,37 +212,6 @@ const ApplicationManager = () => {
                                                             <div className="space-y-4">
                                                                 <h4 className="font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Academic & Special Info</h4>
                                                                 <div className="grid grid-cols-2 gap-4 text-sm">
-                                                                    <div className="col-span-2">
-                                                                        <p className="text-gray-500 dark:text-gray-400">School Name</p>
-                                                                        <p className="font-medium text-gray-900 dark:text-white">{app.school_name || 'N/A'}</p>
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-gray-500 dark:text-gray-400">Class</p>
-                                                                        <p className="font-medium text-gray-900 dark:text-white">{app.exam_category}</p>
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-gray-500 dark:text-gray-400">10th Passing Year</p>
-                                                                        <p className="font-medium text-gray-900 dark:text-white">{app.passing_year_10th || 'N/A'}</p>
-                                                                    </div>
-                                                                    <div className="col-span-2">
-                                                                        <p className="text-gray-500 dark:text-gray-400">Special Conditions</p>
-                                                                        <div className="flex flex-wrap gap-2 mt-1">
-                                                                            {(() => {
-                                                                                try {
-                                                                                    const conditions = JSON.parse(app.special_condition || '[]');
-                                                                                    return conditions.length > 0 ? (
-                                                                                        conditions.map((c, i) => (
-                                                                                            <span key={i} className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full border border-yellow-200">
-                                                                                                {c}
-                                                                                            </span>
-                                                                                        ))
-                                                                                    ) : <span className="text-gray-400 italic">None</span>;
-                                                                                } catch (e) {
-                                                                                    return <span className="text-gray-400 italic">None</span>;
-                                                                                }
-                                                                            })()}
-                                                                        </div>
-                                                                    </div>
                                                                 </div>
 
                                                                 <h4 className="font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2 mt-4">Documents</h4>
@@ -315,63 +244,7 @@ const ApplicationManager = () => {
                                                         </div>
 
                                                         <div className="mt-6 flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 pt-4">
-                                                            {correctionId === app.id ? (
-                                                                <div className="flex items-center gap-2 w-full max-w-lg">
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder="Enter correction notes..."
-                                                                        className="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
-                                                                        value={correctionNote}
-                                                                        onChange={(e) => setCorrectionNote(e.target.value)}
-                                                                    />
-                                                                    <button
-                                                                        onClick={() => handleStatusUpdate(app.id, 'correction', correctionNote)}
-                                                                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg text-sm font-medium"
-                                                                        disabled={!correctionNote}
-                                                                    >
-                                                                        Send
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => setCorrectionId(null)}
-                                                                        className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg text-sm font-medium"
-                                                                    >
-                                                                        Cancel
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <button
-                                                                        onClick={() => handleStatusUpdate(app.id, 'approved')}
-                                                                        disabled={actionLoading === app.id}
-                                                                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                                                    >
-                                                                        <CheckCircle size={16} /> Approve
-                                                                    </button>
-                                                                    {app.status === 'approved' && !app.roll_number && (
-                                                                        <button
-                                                                            onClick={() => handleGenerateAdmitCard(app.id)}
-                                                                            disabled={actionLoading === app.id}
-                                                                            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                                                        >
-                                                                            <FileText size={16} /> Generate Admit Card
-                                                                        </button>
-                                                                    )}
-                                                                    <button
-                                                                        onClick={() => setCorrectionId(app.id)}
-                                                                        disabled={actionLoading === app.id}
-                                                                        className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                                                    >
-                                                                        <AlertCircle size={16} /> Request Correction
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleStatusUpdate(app.id, 'rejected')}
-                                                                        disabled={actionLoading === app.id}
-                                                                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                                                    >
-                                                                        <XCircle size={16} /> Reject
-                                                                    </button>
-                                                                </>
-                                                            )}
+                                                            <span className="text-sm text-gray-500 italic">Read-only view</span>
                                                         </div>
                                                     </td>
                                                 </motion.tr>

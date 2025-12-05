@@ -8,9 +8,11 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads
 async function uploadLocalFromFile(filepath, filename) {
     // ensure upload dir exists
     if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-    // If file already in uploads, return url
-    // Return relative URL to allow frontend proxying (works for localhost, ngrok, etc.)
-    return { url: `/uploads/${encodeURIComponent(filename)}`, filename };
+
+    // Use BASE_URL if defined, otherwise fallback to relative path (which works for proxy)
+    // The review suggested using BASE_URL to avoid hardcoded localhost and support absolute URLs
+    const baseUrl = process.env.BASE_URL || '';
+    return { url: `${baseUrl}/uploads/${encodeURIComponent(filename)}`, filename };
 }
 
 async function uploadS3FromBuffer(buffer, filename, contentType) {

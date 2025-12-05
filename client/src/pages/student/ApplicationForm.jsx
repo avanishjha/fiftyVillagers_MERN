@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Save, Send, Upload, AlertCircle, CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import api from '../../api/axios';
-import ParallaxSection from '../../components/ParallaxSection';
 import Stepper from '../../components/Stepper';
 
 const ApplicationForm = () => {
@@ -28,12 +27,13 @@ const ApplicationForm = () => {
         mobile_secondary: '',
         aadhar_number: '',
         school_name: '',
-        passing_year_10th: '',
+        // passing_year_10th removed
         photo_url: '',
         signature_url: '',
         id_proof_url: '',
-        exam_category: '',
-        special_condition: ''
+        exam_category: '', // Stores Class (9th/10th)
+        special_condition: '',
+        is_govt_school: false
     });
 
     const isReadOnly = applicationStatus === 'submitted' || applicationStatus === 'approved' || applicationStatus === 'rejected';
@@ -113,6 +113,7 @@ const ApplicationForm = () => {
             setLoading(true);
             await api.post('/applications', { ...formData, status: 'pending' });
             alert("Draft Saved Successfully!");
+            navigate('/student/dashboard');
         } catch (err) {
             console.error("Save draft failed", err);
             alert("Failed to save draft.");
@@ -219,9 +220,24 @@ const ApplicationForm = () => {
             case 2: // Academic Details
                 return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InputField label="School Name" name="school_name" value={formData.school_name} onChange={handleChange} disabled={isReadOnly} />
-                        <InputField label="10th Passing Year" name="passing_year_10th" type="number" value={formData.passing_year_10th} onChange={handleChange} disabled={isReadOnly} />
-                        <SelectField label="Exam Category" name="exam_category" value={formData.exam_category} onChange={handleChange} options={["Science", "Arts", "Commerce"]} required disabled={isReadOnly} />
+                        <InputField label="School Name (Govt. School)" name="school_name" value={formData.school_name} onChange={handleChange} disabled={isReadOnly} required />
+                        <SelectField label="Current Class" name="exam_category" value={formData.exam_category} onChange={handleChange} options={["9th", "10th"]} required disabled={isReadOnly} />
+                        <div className="md:col-span-2">
+                            <label className="flex items-center gap-2 p-4 border border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    name="is_govt_school"
+                                    checked={formData.is_govt_school || false}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, is_govt_school: e.target.checked }))}
+                                    required
+                                    disabled={isReadOnly}
+                                    className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
+                                />
+                                <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                    I certify that I am currently studying regularly in a Government School.
+                                </span>
+                            </label>
+                        </div>
                         <div className="md:col-span-2">
                             <TextAreaField label="Special Condition (if any)" name="special_condition" value={formData.special_condition} onChange={handleChange} disabled={isReadOnly} />
                         </div>
@@ -240,28 +256,28 @@ const ApplicationForm = () => {
         }
     };
 
-    if (!isLoaded) return <div className="text-white text-center mt-20">Loading...</div>;
+    if (!isLoaded) return <div className="text-center mt-20 text-gray-600 dark:text-gray-400">Loading...</div>;
 
     return (
-        <div className="min-h-screen bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors">
+            <div className="max-w-5xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gray-800 border border-gray-700 rounded-3xl p-8 md:p-12 shadow-2xl"
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl p-8 md:p-12 shadow-xl"
                 >
-                    <div className="mb-12 text-center">
-                        <h1 className="text-4xl font-bold text-white mb-4 font-sans">Scholarship Application</h1>
-                        <p className="text-gray-400 text-lg">Complete the form below to apply for the scholarship program.</p>
+                    <div className="mb-8 text-center">
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 font-sans">Scholarship Application</h1>
+                        <p className="text-gray-500 dark:text-gray-400">Complete the form below to apply for the scholarship program.</p>
                         {isReadOnly && (
                             <div className="mt-6 flex flex-col items-center gap-4">
-                                <div className="bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 px-6 py-3 rounded-xl flex items-center gap-3">
+                                <div className="bg-emerald-50 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-200 px-6 py-3 rounded-xl flex items-center gap-3">
                                     <CheckCircle size={24} />
                                     <span className="font-semibold">Application Submitted Successfully</span>
                                 </div>
                                 <button
                                     onClick={() => navigate('/student/dashboard')}
-                                    className="bg-white text-black hover:bg-gray-200 font-bold py-3 px-8 rounded-xl transition-all flex items-center gap-2 shadow-lg"
+                                    className="bg-gray-900 dark:bg-white text-white dark:text-black hover:opacity-90 font-bold py-3 px-8 rounded-xl transition-all flex items-center gap-2 shadow-lg"
                                 >
                                     Go to Dashboard <ArrowRight size={20} />
                                 </button>
@@ -271,7 +287,7 @@ const ApplicationForm = () => {
 
                     <Stepper steps={steps} currentStep={currentStep} />
 
-                    <div className="mt-12 min-h-[400px]">
+                    <div className="mt-8 min-h-[400px]">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={currentStep}
@@ -285,13 +301,13 @@ const ApplicationForm = () => {
                         </AnimatePresence>
                     </div>
 
-                    <div className="mt-16 flex justify-between items-center pt-8 border-t border-gray-700">
+                    <div className="mt-12 flex justify-between items-center pt-8 border-t border-gray-200 dark:border-gray-700">
                         <button
                             onClick={prevStep}
                             disabled={currentStep === 0}
                             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${currentStep === 0
-                                ? 'text-gray-600 cursor-not-allowed'
-                                : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                         >
                             <ArrowLeft size={20} /> Previous
@@ -302,7 +318,7 @@ const ApplicationForm = () => {
                                 <button
                                     onClick={handleSaveDraft}
                                     disabled={loading}
-                                    className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/10 transition-all"
+                                    className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all"
                                 >
                                     <Save size={20} /> Save Draft
                                 </button>
@@ -311,7 +327,7 @@ const ApplicationForm = () => {
                             {currentStep < steps.length - 1 ? (
                                 <button
                                     onClick={nextStep}
-                                    className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold bg-white text-black hover:bg-gray-200 transition-all shadow-lg shadow-white/10"
+                                    className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold bg-gray-900 dark:bg-white text-white dark:text-black hover:opacity-90 transition-all shadow-lg"
                                 >
                                     Next <ArrowRight size={20} />
                                 </button>
@@ -338,7 +354,7 @@ const ApplicationForm = () => {
 // Helper Components
 const InputField = ({ label, name, type = "text", value, onChange, required, disabled }) => (
     <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-300 ml-1">{label} {required && <span className="text-red-400">*</span>}</label>
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{label} {required && <span className="text-red-500 dark:text-red-400">*</span>}</label>
         <input
             type={type}
             name={name}
@@ -346,14 +362,14 @@ const InputField = ({ label, name, type = "text", value, onChange, required, dis
             onChange={onChange}
             required={required}
             disabled={disabled}
-            className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-xl py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         />
     </div>
 );
 
 const TextAreaField = ({ label, name, value, onChange, required, disabled }) => (
     <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-300 ml-1">{label} {required && <span className="text-red-400">*</span>}</label>
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{label} {required && <span className="text-red-500 dark:text-red-400">*</span>}</label>
         <textarea
             name={name}
             value={value || ''}
@@ -361,25 +377,25 @@ const TextAreaField = ({ label, name, value, onChange, required, disabled }) => 
             required={required}
             disabled={disabled}
             rows="3"
-            className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-xl py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         />
     </div>
 );
 
 const SelectField = ({ label, name, value, onChange, options, required, disabled }) => (
     <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-300 ml-1">{label} {required && <span className="text-red-400">*</span>}</label>
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{label} {required && <span className="text-red-500 dark:text-red-400">*</span>}</label>
         <select
             name={name}
             value={value || ''}
             onChange={onChange}
             required={required}
             disabled={disabled}
-            className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-xl py-3 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
             <option value="">Select {label}</option>
             {options.map(opt => (
-                <option key={opt} value={opt} className="bg-gray-900">{opt}</option>
+                <option key={opt} value={opt} className="bg-white dark:bg-gray-900">{opt}</option>
             ))}
         </select>
     </div>
@@ -387,23 +403,23 @@ const SelectField = ({ label, name, value, onChange, options, required, disabled
 
 const FileUploadField = ({ label, name, value, onChange, required, disabled }) => (
     <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-300 ml-1">{label} {required && <span className="text-red-400">*</span>}</label>
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{label} {required && <span className="text-red-500 dark:text-red-400">*</span>}</label>
         <div className="relative">
             <input
                 type="file"
                 onChange={onChange}
                 disabled={disabled}
-                className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-500/20 file:text-emerald-400 hover:file:bg-emerald-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-xl py-3 px-4 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 dark:file:bg-emerald-500/20 file:text-emerald-700 dark:file:text-emerald-400 hover:file:bg-emerald-200 dark:hover:file:bg-emerald-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             />
             {value && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400 flex items-center gap-2 bg-emerald-50 dark:bg-black/50 px-2 py-1 rounded-lg">
                     <CheckCircle size={16} /> <span className="text-xs">Uploaded</span>
                 </div>
             )}
         </div>
         {value && (
             <div className="mt-2">
-                <img src={`${api.defaults.baseURL}${value}`} alt="Preview" className="h-20 rounded-lg border border-white/20 object-cover" />
+                <img src={value} alt="Preview" className="h-20 rounded-lg border border-gray-200 dark:border-white/20 object-cover" />
             </div>
         )}
     </div>

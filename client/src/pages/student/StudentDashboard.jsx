@@ -172,7 +172,7 @@ const StudentDashboard = () => {
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Admit Card</h3>
                             </div>
 
-                            {application.admit_url ? (
+                            {application.roll_number ? (
                                 <div>
                                     <p className="text-gray-600 dark:text-gray-300 mb-6">Your admit card has been generated. Please download and print it for the exam.</p>
                                     <Link

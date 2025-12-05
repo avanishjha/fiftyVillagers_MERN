@@ -1,116 +1,131 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FileText, CheckCircle, AlertCircle, ArrowRight, Phone } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { FileText, CheckCircle, Calendar, MapPin, AlertCircle, ArrowRight } from 'lucide-react';
 
 const ApplicationInstructions = () => {
+    const navigate = useNavigate();
+
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors">
             <div className="max-w-4xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700"
+                    className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700"
                 >
-                    <div className="bg-emerald-600 p-8 text-white">
-                        <h1 className="text-3xl font-bold mb-2">Application Guidelines</h1>
-                        <p className="opacity-90 text-lg">Fifty Villagers Service Institute Entrance Exam - 2025</p>
+                    {/* Header */}
+                    <div className="bg-emerald-600 dark:bg-emerald-700 px-8 py-10 text-center text-white relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                        <h1 className="text-3xl md:text-4xl font-bold mb-4 relative z-10">Fifty Villagers Seva Sansthan (Reg.)</h1>
+                        <p className="text-emerald-100 text-lg relative z-10">Near Sadar Police Station, Shastri Nagar, Barmer</p>
+                        <div className="mt-6 inline-block bg-white/20 backdrop-blur-sm rounded-full px-6 py-2 border border-white/30 relative z-10">
+                            <span className="font-semibold">Admission Open: 01 Dec 2025 - 29 Mar 2026</span>
+                        </div>
                     </div>
 
-                    <div className="p-8 space-y-8">
+                    <div className="p-8 md:p-12 space-y-10 text-gray-700 dark:text-gray-300">
+
+                        {/* Target Audience */}
                         <section>
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <FileText className="text-emerald-600" /> Required Information
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <span className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm">01</span>
+                                Who is 50 Villagers for?
                             </h2>
-                            <p className="text-gray-600 dark:text-gray-300 mb-4">
-                                Students must provide the following information while filling out the form:
-                            </p>
-                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-gray-700 dark:text-gray-300">
-                                {[
-                                    "Student Name",
-                                    "Father's Name",
-                                    "Father's Occupation",
-                                    "School Name",
-                                    "Date of Birth",
-                                    "Class (9th/10th/11th/12th)",
-                                    "Year of Passing 10th Class",
-                                    "Permanent Address",
-                                    "Aadhar Number",
-                                    "Mobile Number"
-                                ].map((item, index) => (
-                                    <li key={index} className="flex items-center gap-2">
-                                        <CheckCircle size={16} className="text-emerald-500 flex-shrink-0" />
-                                        {item}
+                            <ul className="space-y-3 pl-12">
+                                <li className="flex items-start gap-3">
+                                    <CheckCircle className="w-5 h-5 text-emerald-500 mt-1 flex-shrink-0" />
+                                    <span>Promising students from rural areas of all castes and religions.</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <CheckCircle className="w-5 h-5 text-emerald-500 mt-1 flex-shrink-0" />
+                                    <span>Needy students from <strong>Barmer, Balotra, Jaisalmer, Phalodi, Jalore, and Jodhpur</strong> who secured First Division in 10th grade but cannot afford Biology stream (Medical) due to financial constraints.</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <CheckCircle className="w-5 h-5 text-emerald-500 mt-1 flex-shrink-0" />
+                                    <span>Students who are orphans, or children of farmers, laborers, or economically weak parents.</span>
+                                </li>
+                            </ul>
+                        </section>
+
+                        {/* Eligibility */}
+                        <section>
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <span className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm">02</span>
+                                Eligibility for Entrance Exam
+                            </h2>
+                            <div className="bg-gray-50 dark:bg-gray-700/30 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+                                <ul className="space-y-3">
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2.5"></div>
+                                        <span>Govt school students from rural/urban areas of mentioned districts with <strong>First Division in 10th</strong>.</span>
                                     </li>
-                                ))}
-                            </ul>
-                        </section>
-
-                        <section className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border border-blue-100 dark:border-blue-800">
-                            <h2 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
-                                <AlertCircle size={20} /> Important Notes
-                            </h2>
-                            <ul className="space-y-3 text-blue-800 dark:text-blue-200 text-sm">
-                                <li className="flex gap-2">
-                                    <span className="font-bold">•</span>
-                                    <span>After completing all steps, students will receive a unique <strong>Registration ID</strong> and <strong>Password</strong>.</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="font-bold">•</span>
-                                    <span><strong>Payment:</strong> Students must pay the examination fee via online mode before the final submission of the form.</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="font-bold">•</span>
-                                    <span>After payment, keep a copy of the finally submitted form (PDF or other document format) safely.</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="font-bold">•</span>
-                                    <span>It is <strong>mandatory</strong> to bring the copy of the finally submitted form on the day of the examination.</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="font-bold">•</span>
-                                    <span>Once the form is finally submitted, students can log in at any time.</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="font-bold">•</span>
-                                    <span>Previous year question papers of the institute's entrance exams will be delivered to the students' permanent address.</span>
-                                </li>
-                            </ul>
-                        </section>
-
-                        <section>
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <Phone className="text-emerald-600" /> Helpline
-                            </h2>
-                            <p className="text-gray-600 dark:text-gray-300 mb-2">
-                                For any information regarding registration, question paper booklet, or examination, please call the following helpline numbers:
-                            </p>
-                            <div className="flex flex-wrap gap-3">
-                                {["8302599508", "8769267930", "6378634149", "8824306289"].map((num) => (
-                                    <a
-                                        key={num}
-                                        href={`tel:${num}`}
-                                        className="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg font-mono font-medium text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
-                                    >
-                                        {num}
-                                    </a>
-                                ))}
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2.5"></div>
+                                        <span>Economically weak and needy students.</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2.5"></div>
+                                        <span>Currently studying regularly in <strong>9th or 10th grade</strong> in a government school.</span>
+                                    </li>
+                                </ul>
                             </div>
                         </section>
 
-                        <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
-                            <Link
-                                to="/student/register"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-lg font-bold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
+                        {/* Exam Details Grid */}
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <section className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-800/50">
+                                <h3 className="font-bold text-blue-900 dark:text-blue-300 mb-4 flex items-center gap-2">
+                                    <Calendar className="w-5 h-5" /> Exam Date & Time
+                                </h3>
+                                <p className="font-semibold text-lg mb-1">29 March 2026, Sunday</p>
+                                <p className="text-blue-700 dark:text-blue-400">1:00 PM to 3:00 PM</p>
+                                <p className="text-xs mt-3 text-blue-600/80 dark:text-blue-400/80">* Reach by 11:00 AM with guardian</p>
+                            </section>
+
+                            <section className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-2xl border border-purple-100 dark:border-purple-800/50">
+                                <h3 className="font-bold text-purple-900 dark:text-purple-300 mb-4 flex items-center gap-2">
+                                    <MapPin className="w-5 h-5" /> Exam Venue
+                                </h3>
+                                <p className="font-medium">Kalam Ashram</p>
+                                <p className="text-purple-700 dark:text-purple-400 text-sm mt-1">Beyond Dhapu Bai College, Bhurtiya Road, Barmer</p>
+                            </section>
+                        </div>
+
+                        {/* Documents & Syllabus */}
+                        <div className="grid md:grid-cols-2 gap-8">
+                            <section>
+                                <h3 className="font-bold text-gray-900 dark:text-white mb-3">Documents Required (Exam Day)</h3>
+                                <ul className="space-y-2 text-sm">
+                                    <li className="flex items-center gap-2"><FileText size={16} className="text-emerald-500" /> 1 Photocopy of Aadhar Card</li>
+                                    <li className="flex items-center gap-2"><FileText size={16} className="text-emerald-500" /> 2 Passport Size Photos</li>
+                                    <li className="flex items-center gap-2"><FileText size={16} className="text-emerald-500" /> 2 Photocopies of 10th Marksheet</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-bold text-gray-900 dark:text-white mb-3">Syllabus (Objective Type)</h3>
+                                <ul className="space-y-2 text-sm">
+                                    <li className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-1"><span>9th & 10th Science</span> <span className="font-semibold">40 Marks</span></li>
+                                    <li className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-1"><span>Basic Math</span> <span className="font-semibold">20 Marks</span></li>
+                                    <li className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-1"><span>English Grammar</span> <span className="font-semibold">20 Marks</span></li>
+                                    <li className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-1"><span>Hindi Grammar</span> <span className="font-semibold">20 Marks</span></li>
+                                </ul>
+                            </section>
+                        </div>
+
+                        {/* Footer Action */}
+                        <div className="pt-6 border-t border-gray-200 dark:border-gray-700 flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                <AlertCircle size={16} />
+                                <span>Form Fee: ₹100 (Includes past papers)</span>
+                            </div>
+                            <button
+                                onClick={() => navigate('/student/register')}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-emerald-500/30 transition-all flex items-center gap-2"
                             >
-                                Proceed to Registration <ArrowRight size={20} />
-                            </Link>
-                            <Link
-                                to="/student/login"
-                                className="bg-white border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 text-lg font-bold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
-                            >
-                                Already Registered? Login
-                            </Link>
+                                Proceed to Application <ArrowRight size={20} />
+                            </button>
                         </div>
                     </div>
                 </motion.div>
