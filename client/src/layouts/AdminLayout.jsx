@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, FileText, Image as ImageIcon, LogOut, Menu, X, Sun, Moon, Users } from 'lucide-react';
+import { LayoutDashboard, FileText, Image as ImageIcon, LogOut, Menu, X, Sun, Moon, Users, Award } from 'lucide-react';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 
 const AdminSidebar = ({ isOpen, setIsOpen }) => {
@@ -20,6 +20,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }) => {
         { path: '/admin/blogs', label: 'Blogs', icon: FileText },
         { path: '/admin/gallery', label: 'Gallery', icon: ImageIcon },
         { path: '/admin/applications', label: 'Applications', icon: Users },
+        { path: '/admin/success-stories', label: 'Success Stories', icon: Award },
     ];
 
     return (

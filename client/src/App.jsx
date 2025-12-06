@@ -19,6 +19,8 @@ import StudentDashboard from './pages/student/StudentDashboard';
 import AdmitCard from './pages/student/AdmitCard';
 import ApplicationInstructions from './pages/student/ApplicationInstructions';
 import StudentLayout from './layouts/StudentLayout';
+import SuccessStories from './pages/public/SuccessStories';
+import SuccessStoriesManager from './pages/admin/SuccessStoriesManager';
 
 function App() {
   return (
@@ -30,6 +32,7 @@ function App() {
           <Route path="blogs" element={<BlogList />} />
           <Route path="blogs/:id" element={<BlogDetail />} />
           <Route path="gallery" element={<Gallery />} />
+          <Route path="success-stories" element={<SuccessStories />} />
           <Route path="instructions" element={<ApplicationInstructions />} />
         </Route>
 
@@ -50,6 +53,7 @@ function App() {
           <Route path="blogs/new" element={<BlogEditor />} />
           <Route path="blogs/edit/:id" element={<BlogEditor />} />
           <Route path="gallery" element={<GalleryManager />} />
+          <Route path="success-stories" element={<SuccessStoriesManager />} />
           <Route path="applications" element={<ApplicationManager />} />
         </Route>
       </Routes>

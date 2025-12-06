@@ -14,7 +14,9 @@ const PORT = process.env.PORT || 5000;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
 
 // Basic middleware
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -61,6 +63,7 @@ app.use('/api/gallery', require('./routes/gallery'));
 app.use('/api/applications', require('./routes/applications'));
 app.use('/api/payment', require('./routes/paymentRoutes'));
 app.use('/api/exam', require('./routes/examRoutes'));
+app.use('/api/student', require('./routes/studentRoutes'));
 
 app.get('/', (req, res) => {
     res.send('Fifty Villagers API is running');

@@ -110,7 +110,7 @@ const AdmitCard = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-xs text-gray-500 uppercase font-bold">Student Name</p>
-                                    <p className="font-bold text-lg">{application.father_name}</p> {/* Using father_name as proxy if student name not in app table, ideally join user table */}
+                                    <p className="font-bold text-lg">{application.student_name}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500 uppercase font-bold">Date of Birth</p>

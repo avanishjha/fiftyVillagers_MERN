@@ -71,8 +71,8 @@ CREATE TABLE IF NOT EXISTS applications (
 );
 
 -- Indexes for Applications
-CREATE INDEX idx_applications_payment_status ON applications(payment_status);
-CREATE INDEX idx_applications_roll_number ON applications(roll_number);
+CREATE INDEX IF NOT EXISTS idx_applications_payment_status ON applications(payment_status);
+CREATE INDEX IF NOT EXISTS idx_applications_roll_number ON applications(roll_number);
 
 -- Admit Cards Table (Legacy/Optional - functionality moved to applications table but kept for schema compatibility)
 CREATE TABLE IF NOT EXISTS admit_cards (

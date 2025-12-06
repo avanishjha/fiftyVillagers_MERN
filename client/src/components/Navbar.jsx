@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
-import { Sun, Moon, Menu, X } from 'lucide-react';
+import { Sun, Moon, Menu, X, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import logo from '../assets/logo.jpg';
@@ -8,9 +8,11 @@ import logo from '../assets/logo.jpg';
 const Navbar = () => {
     const [hidden, setHidden] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isStudentDropdownOpen, setIsStudentDropdownOpen] = useState(false); // Mobile dropdown state
     const { scrollY } = useScroll();
     const { theme, toggleTheme } = useTheme();
 
+    // ... (keep useMotionValueEvent)
     useMotionValueEvent(scrollY, "change", (latest) => {
         const previous = scrollY.getPrevious();
         if (latest > previous && latest > 150) {
@@ -66,9 +68,21 @@ const Navbar = () => {
                         {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                     </button>
 
-                    <Link to="/instructions" className="bg-emerald-600 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-emerald-700 transition-colors font-sans shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
-                        Apply Now
-                    </Link>
+                    {/* Student Dropdown */}
+                    <div className="relative group">
+                        <button className="flex items-center gap-1 bg-emerald-600 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-emerald-700 transition-colors font-sans shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
+                            Student <ChevronDown size={16} />
+                        </button>
+                        <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-right">
+                            <Link to="/instructions" className="block px-6 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors border-b border-gray-100 dark:border-gray-700">
+                                Apply Now
+                            </Link>
+                            <Link to="/success-stories" className="block px-6 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                                Success Stories
+                            </Link>
+                        </div>
+                    </div>
+
                     <button className="bg-black dark:bg-white text-white dark:text-black px-6 py-2.5 rounded-full font-bold text-sm hover:opacity-80 transition-opacity font-sans shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
                         Donate
                     </button>
@@ -97,7 +111,7 @@ const Navbar = () => {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800"
+                    className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 overflow-y-auto max-h-[90vh]"
                 >
                     <div className="flex flex-col p-6 space-y-4">
                         {navLinks.map((item) => (
@@ -110,10 +124,27 @@ const Navbar = () => {
                                 {item.name}
                             </a>
                         ))}
-                        <Link to="/instructions" className="bg-emerald-600 text-white w-full py-4 rounded-lg font-bold font-sans shadow-lg text-center block">
-                            Apply Now
-                        </Link>
-                        <button className="bg-black dark:bg-white text-white dark:text-black w-full py-4 rounded-lg font-bold font-sans shadow-lg">
+
+                        {/* Mobile Student Section */}
+                        <div className="pt-2 pb-2">
+                            <h3 className="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Student Section</h3>
+                            <Link
+                                to="/instructions"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="block py-2 text-gray-900 dark:text-white text-lg font-medium hover:text-emerald-600 dark:hover:text-emerald-400"
+                            >
+                                Apply Now
+                            </Link>
+                            <Link
+                                to="/success-stories"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="block py-2 text-gray-900 dark:text-white text-lg font-medium hover:text-emerald-600 dark:hover:text-emerald-400"
+                            >
+                                Success Stories
+                            </Link>
+                        </div>
+
+                        <button className="bg-black dark:bg-white text-white dark:text-black w-full py-4 rounded-lg font-bold font-sans shadow-lg mt-4">
                             Donate Now
                         </button>
                     </div>

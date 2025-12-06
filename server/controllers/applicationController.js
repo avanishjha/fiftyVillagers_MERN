@@ -4,9 +4,10 @@ const { pool } = require('../config/db');
 exports.getMyApplication = async (req, res, next) => {
     try {
         const result = await pool.query(
-            `SELECT a.*, ec.name as exam_center_name, ec.location as exam_center_location, ec.exam_date 
+            `SELECT a.*, ec.name as exam_center_name, ec.location as exam_center_location, ec.exam_date, u.name as student_name
              FROM applications a
              LEFT JOIN exam_centers ec ON a.exam_center_id = ec.id
+             JOIN users u ON a.student_id = u.id
              WHERE a.student_id = $1`,
             [req.user.id]
         );
