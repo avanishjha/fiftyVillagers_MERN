@@ -1,6 +1,5 @@
 const { pool } = require('../config/db');
-const fs = require('fs');
-const path = require('path');
+const storage = require('../storage');
 
 // Get all gallery sections with images (Public)
 exports.getGallery = async (req, res) => {
@@ -54,14 +53,20 @@ exports.deleteSection = async (req, res) => {
         }
 
         // Delete associated images from disk (optional, but good practice)
+        // Delete associated images from storage
         const images = await pool.query('SELECT url FROM gallery_images WHERE section_id = $1', [id]);
-        images.rows.forEach(img => {
-            const filename = img.url.split('/').pop();
-            const filePath = path.join(__dirname, '../uploads', filename);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
+
+        // Use Promise.all to delete files in parallel
+        await Promise.all(images.rows.map(async (img) => {
+            if (img.url) {
+                const filename = img.url.split('/').pop();
+                try {
+                    await storage.deleteFile(filename);
+                } catch (e) {
+                    console.error(`Failed to delete file ${filename}:`, e.message);
+                }
             }
-        });
+        }));
 
         // Delete section (Cascade will handle DB rows for images)
         await pool.query('DELETE FROM gallery_sections WHERE id = $1', [id]);
@@ -86,7 +91,7 @@ exports.uploadImage = async (req, res) => {
         const uploadedImages = [];
 
         for (const file of req.files) {
-            const url = `http://localhost:5000/uploads/${file.filename}`;
+            const url = storage.getFileUrl(file.filename);
             const newImage = await pool.query(
                 'INSERT INTO gallery_images (section_id, url, caption) VALUES ($1, $2, $3) RETURNING *',
                 [section_id, url, caption || ''] // Use same caption for all or empty
@@ -113,10 +118,7 @@ exports.deleteImage = async (req, res) => {
         }
 
         const filename = image.rows[0].url.split('/').pop();
-        const filePath = path.join(__dirname, '../uploads', filename);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
+        await storage.deleteFile(filename);
 
         await pool.query('DELETE FROM gallery_images WHERE id = $1', [id]);
 

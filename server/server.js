@@ -37,8 +37,11 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Serve static uploads
-const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-app.use('/uploads', express.static(uploadsDir, { maxAge: '30d' }));
+// Serve static uploads (only for local driver)
+if (process.env.STORAGE_DRIVER !== 's3') {
+    const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
+    app.use('/uploads', express.static(uploadsDir, { maxAge: '30d' }));
+}
 
 // Health endpoint
 app.get('/health', async (req, res) => {
