@@ -35,7 +35,6 @@ exports.saveApplication = async (req, res, next) => {
             mobile_secondary,
             aadhar_number,
             school_name,
-            passing_year_10th,
             photo_url,
             signature_url,
             id_proof_url,
@@ -47,7 +46,6 @@ exports.saveApplication = async (req, res, next) => {
 
         // Sanitize inputs (convert empty strings to null for integers/dates)
         const sanitizedFamilyMembers = family_members === '' ? null : family_members;
-        const sanitizedPassingYear = passing_year_10th === '' ? null : passing_year_10th;
         const sanitizedDob = dob === '' ? null : dob;
 
         // Check if application exists
@@ -62,16 +60,16 @@ exports.saveApplication = async (req, res, next) => {
                 UPDATE applications 
                 SET father_name = $1, father_occupation = $2, family_members = $3, dob = $4, gender = $5, 
                     address = $6, pincode = $7, phone = $8, mobile_secondary = $9, aadhar_number = $10,
-                    school_name = $11, passing_year_10th = $12, photo_url = $13, signature_url = $14, 
-                    id_proof_url = $15, exam_category = $16, special_condition = $17, is_govt_school = $18,
-                    status = COALESCE($19, status)
-                WHERE student_id = $20
+                    school_name = $11, photo_url = $12, signature_url = $13, 
+                    id_proof_url = $14, exam_category = $15, special_condition = $16, is_govt_school = $17,
+                    status = COALESCE($18, status)
+                WHERE student_id = $19
                 RETURNING *
             `;
             const updated = await pool.query(updateQuery, [
                 father_name, father_occupation, sanitizedFamilyMembers, sanitizedDob, gender,
                 address, pincode, phone, mobile_secondary, aadhar_number,
-                school_name, sanitizedPassingYear, photo_url, signature_url,
+                school_name, photo_url, signature_url,
                 id_proof_url, exam_category, special_condition, is_govt_school,
                 status || null, // Use null for COALESCE to work if status is undefined
                 req.user.id
@@ -83,15 +81,15 @@ exports.saveApplication = async (req, res, next) => {
                 INSERT INTO applications (
                     student_id, father_name, father_occupation, family_members, dob, gender, 
                     address, pincode, phone, mobile_secondary, aadhar_number, school_name, 
-                    passing_year_10th, photo_url, signature_url, id_proof_url, exam_category, 
+                    photo_url, signature_url, id_proof_url, exam_category, 
                     special_condition, is_govt_school, status
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
                 RETURNING *
             `;
             const newApp = await pool.query(insertQuery, [
                 req.user.id, father_name, father_occupation, sanitizedFamilyMembers, sanitizedDob, gender,
                 address, pincode, phone, mobile_secondary, aadhar_number, school_name,
-                sanitizedPassingYear, photo_url, signature_url, id_proof_url, exam_category,
+                photo_url, signature_url, id_proof_url, exam_category,
                 special_condition, is_govt_school, status || 'pending'
             ]);
             return res.json(newApp.rows[0]);

@@ -1,1 +1,0 @@
-ALTER TABLE blogs ADD COLUMN IF NOT EXISTS hero_image TEXT;
