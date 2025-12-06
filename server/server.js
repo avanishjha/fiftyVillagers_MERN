@@ -1,13 +1,14 @@
+const env = require('./config/env');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const morgan = require('morgan');
 const path = require('path');
 require('dotenv').config();
 const migrate = require('./utils/migrate');
 const { pool } = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
+const { logger, requestLogger, logError } = require('./config/logger');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,8 +21,8 @@ app.use(helmet({
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Logging
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// Logging Middleware
+app.use(requestLogger);
 
 // CORS
 app.use(cors({
@@ -38,7 +39,6 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Serve static uploads
 // Serve static uploads (only for local driver)
 if (process.env.STORAGE_DRIVER !== 's3') {
     const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
@@ -72,24 +72,23 @@ app.get('/', (req, res) => {
 // Error Handler (Must be last)
 app.use(errorHandler);
 
+// Global Error Logging Middleware (Custom)
+app.use((err, req, res, next) => {
+    logError(err, req);
+    if (res.headersSent) return next(err);
+    next(err); // Pass to the final error handler (errorHandler.js) checks response.
+});
+
+
 // Start Server
 const startServer = async () => {
     try {
         await migrate();
-        const server = app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
-        });
-
-        // Graceful shutdown
-        process.on('SIGTERM', async () => {
-            console.log('SIGTERM received, shutting down gracefully');
-            await pool.end();
-            server.close(() => {
-                process.exit(0);
-            });
+        app.listen(PORT, () => {
+            logger.info(`Server started on port ${PORT}`);
         });
     } catch (err) {
-        console.error('Failed to start server:', err);
+        logger.error('Failed to start server', { error: err.message });
         process.exit(1);
     }
 };

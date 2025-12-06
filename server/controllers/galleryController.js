@@ -1,9 +1,13 @@
 const { pool } = require('../config/db');
 const storage = require('../storage');
+const { logger } = require('../config/logger');
 
 // Get all gallery sections with images (Public)
 exports.getGallery = async (req, res) => {
     try {
+        logger.info('Getting gallery', {
+            userId: req.user?.id || 'public'
+        });
         // Fetch sections
         const sections = await pool.query('SELECT * FROM gallery_sections ORDER BY id DESC');
 
@@ -21,6 +25,10 @@ exports.getGallery = async (req, res) => {
 
         res.json(gallery);
     } catch (err) {
+        logger.error('Failed to get gallery', {
+            userId: req.user?.id || 'public',
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -29,6 +37,11 @@ exports.getGallery = async (req, res) => {
 // Create a new section (Admin)
 exports.createSection = async (req, res) => {
     try {
+        logger.info('Creating section', {
+            userId: req.user.id,
+            name: req.body.name,
+            description: req.body.description
+        });
         const { name, description } = req.body;
         const newSection = await pool.query(
             'INSERT INTO gallery_sections (name, description) VALUES ($1, $2) RETURNING *',
@@ -36,6 +49,12 @@ exports.createSection = async (req, res) => {
         );
         res.json(newSection.rows[0]);
     } catch (err) {
+        logger.error('Failed to create section', {
+            userId: req.user?.id,
+            name: req.body.name,
+            description: req.body.description,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -44,6 +63,10 @@ exports.createSection = async (req, res) => {
 // Delete a section (Admin)
 exports.deleteSection = async (req, res) => {
     try {
+        logger.info('Deleting section', {
+            userId: req.user.id,
+            sectionId: req.params.id
+        });
         const { id } = req.params;
 
         // Check if section exists
@@ -61,8 +84,17 @@ exports.deleteSection = async (req, res) => {
             if (img.url) {
                 const filename = img.url.split('/').pop();
                 try {
+                    logger.info('Deleting file', {
+                        userId: req.user.id,
+                        filename: filename
+                    });
                     await storage.deleteFile(filename);
                 } catch (e) {
+                    logger.error('Failed to delete file', {
+                        userId: req.user.id,
+                        filename: filename,
+                        error: e.message
+                    });
                     console.error(`Failed to delete file ${filename}:`, e.message);
                 }
             }
@@ -73,6 +105,11 @@ exports.deleteSection = async (req, res) => {
 
         res.json({ msg: 'Section deleted' });
     } catch (err) {
+        logger.error('Failed to delete section', {
+            userId: req.user?.id,
+            sectionId: req.params.id,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -82,6 +119,11 @@ exports.deleteSection = async (req, res) => {
 // Upload images to section (Admin)
 exports.uploadImage = async (req, res) => {
     try {
+        logger.info('Uploading image', {
+            userId: req.user.id,
+            sectionId: req.body.section_id,
+            caption: req.body.caption
+        });
         const { section_id, caption } = req.body;
 
         if (!req.files || req.files.length === 0) {
@@ -101,6 +143,12 @@ exports.uploadImage = async (req, res) => {
 
         res.json(uploadedImages);
     } catch (err) {
+        logger.error('Failed to upload image', {
+            userId: req.user?.id,
+            sectionId: req.body.section_id,
+            caption: req.body.caption,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -109,6 +157,10 @@ exports.uploadImage = async (req, res) => {
 // Delete an image (Admin)
 exports.deleteImage = async (req, res) => {
     try {
+        logger.info('Deleting image', {
+            userId: req.user.id,
+            imageId: req.params.id
+        });
         const { id } = req.params;
 
         // Get image URL to delete file
@@ -124,6 +176,11 @@ exports.deleteImage = async (req, res) => {
 
         res.json({ msg: 'Image deleted' });
     } catch (err) {
+        logger.error('Failed to delete image', {
+            userId: req.user?.id,
+            imageId: req.params.id,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }

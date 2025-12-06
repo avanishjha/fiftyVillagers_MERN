@@ -1,9 +1,15 @@
 const { pool } = require('../config/db');
+const { logger } = require('../config/logger');
 
 // Get all blogs (Public)
 // Get all blogs (Public)
 exports.getAllBlogs = async (req, res) => {
     try {
+        logger.info('Fetching all blogs', {
+            userId: req.user?.id || 'public',
+            page: req.query.page,
+            limit: req.query.limit
+        });
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 9;
         const offset = (page - 1) * limit;
@@ -31,6 +37,10 @@ exports.getAllBlogs = async (req, res) => {
             }
         });
     } catch (err) {
+        logger.error('Failed to fetch blogs', {
+            userId: req.user?.id || 'public',
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -39,6 +49,10 @@ exports.getAllBlogs = async (req, res) => {
 // Get single blog by ID (Public)
 exports.getBlogById = async (req, res) => {
     try {
+        logger.info('Fetching blog by ID', {
+            userId: req.user?.id || 'public',
+            blogId: req.params.id
+        });
         const { id } = req.params;
         const blog = await pool.query(`
             SELECT b.*, u.name as author_name 
@@ -70,6 +84,11 @@ exports.getBlogById = async (req, res) => {
             reactions: reactions.rows
         });
     } catch (err) {
+        logger.error('Failed to fetch blog by ID', {
+            userId: req.user?.id || 'public',
+            blogId: req.params.id,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -78,6 +97,10 @@ exports.getBlogById = async (req, res) => {
 // Create a blog (Admin only)
 exports.createBlog = async (req, res) => {
     try {
+        logger.info('Creating blog', {
+            userId: req.user.id,
+            title: req.body.title
+        });
         const { title, content, hero_image } = req.body;
         const newBlog = await pool.query(
             'INSERT INTO blogs (title, content, hero_image, author_id) VALUES ($1, $2, $3, $4) RETURNING *',
@@ -85,6 +108,11 @@ exports.createBlog = async (req, res) => {
         );
         res.json(newBlog.rows[0]);
     } catch (err) {
+        logger.error('Failed to create blog', {
+            userId: req.user?.id,
+            title: req.body.title,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -93,6 +121,11 @@ exports.createBlog = async (req, res) => {
 // Update a blog (Admin only)
 exports.updateBlog = async (req, res) => {
     try {
+        logger.info('Updating blog', {
+            userId: req.user.id,
+            blogId: req.params.id,
+            title: req.body.title
+        });
         const { id } = req.params;
         const { title, content, hero_image } = req.body;
         const updateBlog = await pool.query(
@@ -106,6 +139,12 @@ exports.updateBlog = async (req, res) => {
 
         res.json(updateBlog.rows[0]);
     } catch (err) {
+        logger.error('Failed to update blog', {
+            userId: req.user?.id,
+            blogId: req.params.id,
+            title: req.body.title,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -114,6 +153,10 @@ exports.updateBlog = async (req, res) => {
 // Delete a blog (Admin only)
 exports.deleteBlog = async (req, res) => {
     try {
+        logger.info('Deleting blog', {
+            userId: req.user.id,
+            blogId: req.params.id
+        });
         const { id } = req.params;
         const deleteBlog = await pool.query('DELETE FROM blogs WHERE id = $1 RETURNING *', [id]);
 
@@ -123,6 +166,11 @@ exports.deleteBlog = async (req, res) => {
 
         res.json({ msg: 'Blog deleted' });
     } catch (err) {
+        logger.error('Failed to delete blog', {
+            userId: req.user?.id,
+            blogId: req.params.id,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -131,6 +179,11 @@ exports.deleteBlog = async (req, res) => {
 // Add a comment (Public)
 exports.addComment = async (req, res) => {
     try {
+        logger.info('Adding comment', {
+            userId: req.user?.id || 'public',
+            blogId: req.params.id,
+            commenterName: req.body.commenter_name
+        });
         const { id } = req.params;
         const { commenter_name, content } = req.body;
 
@@ -141,6 +194,12 @@ exports.addComment = async (req, res) => {
 
         res.json(newComment.rows[0]);
     } catch (err) {
+        logger.error('Failed to add comment', {
+            userId: req.user?.id || 'public',
+            blogId: req.params.id,
+            commenterName: req.body.commenter_name,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -149,6 +208,11 @@ exports.addComment = async (req, res) => {
 // Add a reaction (Public)
 exports.addReaction = async (req, res) => {
     try {
+        logger.info('Adding reaction', {
+            userId: req.user?.id || 'public',
+            blogId: req.params.id,
+            reactionType: req.body.reaction_type
+        });
         const { id } = req.params;
         const { commenter_name, reaction_type } = req.body;
 
@@ -159,6 +223,12 @@ exports.addReaction = async (req, res) => {
 
         res.json(newReaction.rows[0]);
     } catch (err) {
+        logger.error('Failed to add reaction', {
+            userId: req.user?.id || 'public',
+            blogId: req.params.id,
+            reactionType: req.body.reaction_type,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }

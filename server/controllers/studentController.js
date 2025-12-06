@@ -1,9 +1,13 @@
 const { pool } = require('../config/db');
 const storage = require('../storage');
+const { logger } = require('../config/logger');
 
 // Public: Get all success stories
 exports.getAllStories = async (req, res) => {
     try {
+        logger.info('Fetching all success stories', {
+            userId: req.user?.id || 'public'
+        });
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 9;
         const offset = (page - 1) * limit;
@@ -23,6 +27,10 @@ exports.getAllStories = async (req, res) => {
             }
         });
     } catch (err) {
+        logger.error('Failed to fetch all success stories', {
+            userId: req.user?.id || 'public',
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -31,6 +39,10 @@ exports.getAllStories = async (req, res) => {
 // Public: Get single story
 exports.getStoryById = async (req, res) => {
     try {
+        logger.info('Fetching single success story', {
+            userId: req.user?.id || 'public',
+            storyId: req.params.id
+        });
         const { id } = req.params;
         const result = await pool.query('SELECT * FROM success_stories WHERE id = $1', [id]);
 
@@ -39,6 +51,11 @@ exports.getStoryById = async (req, res) => {
         }
         res.json(result.rows[0]);
     } catch (err) {
+        logger.error('Failed to fetch single success story', {
+            userId: req.user?.id || 'public',
+            storyId: req.params.id,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -47,6 +64,13 @@ exports.getStoryById = async (req, res) => {
 // Admin: Create story
 exports.createStory = async (req, res) => {
     try {
+        logger.info('Creating success story', {
+            userId: req.user.id,
+            name: req.body.name,
+            batch: req.body.batch,
+            excerpt: req.body.excerpt,
+            content: req.body.content
+        });
         const { name, batch, excerpt, content } = req.body;
         let image_url = null;
 
@@ -62,6 +86,14 @@ exports.createStory = async (req, res) => {
 
         res.json(newStory.rows[0]);
     } catch (err) {
+        logger.error('Failed to create success story', {
+            userId: req.user?.id,
+            name: req.body.name,
+            batch: req.body.batch,
+            excerpt: req.body.excerpt,
+            content: req.body.content,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -70,6 +102,14 @@ exports.createStory = async (req, res) => {
 // Admin: Update story
 exports.updateStory = async (req, res) => {
     try {
+        logger.info('Updating success story', {
+            userId: req.user.id,
+            storyId: req.params.id,
+            name: req.body.name,
+            batch: req.body.batch,
+            excerpt: req.body.excerpt,
+            content: req.body.content
+        });
         const { id } = req.params;
         const { name, batch, excerpt, content } = req.body;
 
@@ -97,6 +137,15 @@ exports.updateStory = async (req, res) => {
 
         res.json(updatedStory.rows[0]);
     } catch (err) {
+        logger.error('Failed to update success story', {
+            userId: req.user?.id,
+            storyId: req.params.id,
+            name: req.body.name,
+            batch: req.body.batch,
+            excerpt: req.body.excerpt,
+            content: req.body.content,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }
@@ -105,6 +154,10 @@ exports.updateStory = async (req, res) => {
 // Admin: Delete story
 exports.deleteStory = async (req, res) => {
     try {
+        logger.info('Deleting success story', {
+            userId: req.user.id,
+            storyId: req.params.id
+        });
         const { id } = req.params;
         const story = await pool.query('SELECT * FROM success_stories WHERE id = $1', [id]);
 
@@ -120,6 +173,11 @@ exports.deleteStory = async (req, res) => {
         await pool.query('DELETE FROM success_stories WHERE id = $1', [id]);
         res.json({ msg: 'Story deleted' });
     } catch (err) {
+        logger.error('Failed to delete success story', {
+            userId: req.user?.id,
+            storyId: req.params.id,
+            error: err.message
+        });
         console.error(err.message);
         res.status(500).send('Server Error');
     }

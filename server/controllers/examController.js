@@ -1,8 +1,13 @@
 const { pool } = require('../config/db');
+const { logger } = require('../config/logger');
 
 // Generate Admit Card (Auto-assign default center)
 exports.generateAdmitCard = async (req, res) => {
     try {
+        logger.info('Generating admit card', {
+            userId: req.user.id,
+            applicationId: req.body.applicationId
+        });
         const { applicationId } = req.body;
 
         // Get default center
@@ -26,6 +31,11 @@ exports.generateAdmitCard = async (req, res) => {
 
         res.json({ message: "Admit Card Generated", data: updated.rows[0] });
     } catch (err) {
+        logger.error('Failed to generate admit card', {
+            userId: req.user.id,
+            applicationId: req.body.applicationId,
+            error: err.message
+        });
         console.error(err);
         res.status(500).send("Server Error");
     }
@@ -34,6 +44,9 @@ exports.generateAdmitCard = async (req, res) => {
 // Get Admit Card for Student
 exports.getAdmitCard = async (req, res) => {
     try {
+        logger.info('Getting admit card', {
+            userId: req.user.id
+        });
         const studentId = req.user.id;
 
         const query = `
@@ -53,6 +66,10 @@ exports.getAdmitCard = async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (err) {
+        logger.error('Failed to get admit card', {
+            userId: req.user.id,
+            error: err.message
+        });
         console.error(err);
         res.status(500).send("Server Error");
     }

@@ -1,6 +1,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { pool } = require('../config/db');
+const { logger } = require('../config/logger');
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_missing',
@@ -12,6 +13,10 @@ console.log("Razorpay Configured. Key ID:", process.env.RAZORPAY_KEY_ID ? proces
 // Create Order
 exports.createOrder = async (req, res) => {
     try {
+        logger.info('Creating order', {
+            userId: req.user.id,
+            amount: req.body.amount
+        });
         console.log("createOrder called. Key ID:", process.env.RAZORPAY_KEY_ID ? "FOUND" : "MISSING");
         const { amount } = req.body; // Amount in smallest currency unit (paise)
 
@@ -28,6 +33,11 @@ exports.createOrder = async (req, res) => {
             key_id: process.env.RAZORPAY_KEY_ID
         });
     } catch (error) {
+        logger.error('Failed to create order', {
+            userId: req.user.id,
+            amount: req.body.amount,
+            error: error.message
+        });
         console.error("Razorpay Order Error:", error);
         res.status(500).json({
             message: "Error creating order",
@@ -39,6 +49,13 @@ exports.createOrder = async (req, res) => {
 // Verify Payment
 exports.verifyPayment = async (req, res) => {
     try {
+        logger.info('Verifying payment', {
+            userId: req.user.id,
+            razorpay_order_id: req.body.razorpay_order_id,
+            razorpay_payment_id: req.body.razorpay_payment_id,
+            razorpay_signature: req.body.razorpay_signature,
+            applicationId: req.body.applicationId
+        });
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, applicationId } = req.body;
 
         const body = razorpay_order_id + "|" + razorpay_payment_id;
@@ -49,6 +66,13 @@ exports.verifyPayment = async (req, res) => {
             .digest('hex');
 
         if (expectedSignature === razorpay_signature) {
+            logger.info('Payment verified', {
+                userId: req.user.id,
+                razorpay_order_id: req.body.razorpay_order_id,
+                razorpay_payment_id: req.body.razorpay_payment_id,
+                razorpay_signature: req.body.razorpay_signature,
+                applicationId: req.body.applicationId
+            });
             // 1. Get Default Exam Center
             const centerRes = await pool.query('SELECT id FROM exam_centers LIMIT 1');
             let examCenterId = null;
@@ -74,9 +98,24 @@ exports.verifyPayment = async (req, res) => {
 
             res.json({ status: "success", message: "Payment verified and Admit Card generated" });
         } else {
+            logger.error('Payment verification failed', {
+                userId: req.user.id,
+                razorpay_order_id: req.body.razorpay_order_id,
+                razorpay_payment_id: req.body.razorpay_payment_id,
+                razorpay_signature: req.body.razorpay_signature,
+                applicationId: req.body.applicationId
+            });
             res.status(400).json({ status: "failure", message: "Invalid signature" });
         }
     } catch (error) {
+        logger.error('Payment verification failed', {
+            userId: req.user.id,
+            razorpay_order_id: req.body.razorpay_order_id,
+            razorpay_payment_id: req.body.razorpay_payment_id,
+            razorpay_signature: req.body.razorpay_signature,
+            applicationId: req.body.applicationId,
+            error: error.message
+        });
         console.error("Payment Verification Error:", error);
         res.status(500).send("Error verifying payment");
     }

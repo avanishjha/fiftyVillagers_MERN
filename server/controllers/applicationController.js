@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { logger } = require('../config/logger');
 
 // Get current student's application
 exports.getMyApplication = async (req, res, next) => {
@@ -24,6 +25,10 @@ exports.getMyApplication = async (req, res, next) => {
 // Create or Update Application
 exports.saveApplication = async (req, res, next) => {
     try {
+        logger.info('Saving application', {
+            userId: req.user.id,
+            status: req.body.status
+        });
         const {
             father_name,
             father_occupation,
