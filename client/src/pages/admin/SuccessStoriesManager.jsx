@@ -22,14 +22,17 @@ const SuccessStoriesManager = () => {
     const token = localStorage.getItem('token');
     const config = { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } };
 
+    const [pagination, setPagination] = useState(null);
+
     useEffect(() => {
-        fetchStories();
+        fetchStories(1);
     }, []);
 
-    const fetchStories = async () => {
+    const fetchStories = async (page = 1) => {
         try {
-            const res = await axios.get(`${API_URL}/api/student/stories`);
-            setStories(res.data);
+            const res = await axios.get(`${API_URL}/api/student/stories?page=${page}&limit=12`, { headers: { Authorization: `Bearer ${token}` } });
+            setStories(res.data.data);
+            setPagination(res.data.pagination);
         } catch (err) {
             console.error('Failed to fetch stories');
         }
@@ -46,7 +49,6 @@ const SuccessStoriesManager = () => {
             existingImage: story.image_url
         });
         setIsEditing(true);
-        // Scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -215,43 +217,67 @@ const SuccessStoriesManager = () => {
                     </form>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {stories.map((story) => (
-                        <div key={story.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col">
-                            <div className="h-48 overflow-hidden relative">
-                                <img src={story.image_url} alt={story.name} className="w-full h-full object-cover" />
-                                <div className="absolute top-2 right-2 flex gap-2">
-                                    <button
-                                        onClick={() => handleEdit(story)}
-                                        className="p-2 bg-white/90 text-blue-600 rounded-full hover:bg-white"
-                                    >
-                                        <Edit size={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(story.id)}
-                                        className="p-2 bg-white/90 text-red-600 rounded-full hover:bg-white"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {stories.map((story) => (
+                            <div key={story.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col">
+                                <div className="h-48 overflow-hidden relative">
+                                    <img src={story.image_url} alt={story.name} className="w-full h-full object-cover" />
+                                    <div className="absolute top-2 right-2 flex gap-2">
+                                        <button
+                                            onClick={() => handleEdit(story)}
+                                            className="p-2 bg-white/90 text-blue-600 rounded-full hover:bg-white"
+                                        >
+                                            <Edit size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(story.id)}
+                                            className="p-2 bg-white/90 text-red-600 rounded-full hover:bg-white"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="p-4 flex-1 flex flex-col">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{story.name}</h3>
+                                    <p className="text-sm text-emerald-600 dark:text-emerald-400 mb-2">{story.batch}</p>
+                                    <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3 mb-4 flex-1">
+                                        {story.excerpt}
+                                    </p>
                                 </div>
                             </div>
-                            <div className="p-4 flex-1 flex flex-col">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{story.name}</h3>
-                                <p className="text-sm text-emerald-600 dark:text-emerald-400 mb-2">{story.batch}</p>
-                                <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3 mb-4 flex-1">
-                                    {story.excerpt}
-                                </p>
+                        ))}
+                        {stories.length === 0 && (
+                            <div className="col-span-full text-center py-12 text-gray-500">
+                                No stories found. Add one to get started!
                             </div>
-                        </div>
-                    ))}
-                    {stories.length === 0 && (
-                        <div className="col-span-full text-center py-12 text-gray-500">
-                            No stories found. Add one to get started!
+                        )}
+                    </div>
+
+                    {pagination && pagination.totalPages > 1 && (
+                        <div className="flex justify-center mt-8 gap-2">
+                            <button
+                                onClick={() => fetchStories(pagination.page - 1)}
+                                disabled={pagination.page === 1}
+                                className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
+                            >
+                                Previous
+                            </button>
+                            <span className="px-4 py-2 text-gray-600 dark:text-gray-300">
+                                Page {pagination.page} of {pagination.totalPages}
+                            </span>
+                            <button
+                                onClick={() => fetchStories(pagination.page + 1)}
+                                disabled={pagination.page === pagination.totalPages}
+                                className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
+                            >
+                                Next
+                            </button>
                         </div>
                     )}
-                </div>
+                </>
             )}
-        </div>
+        </div >
     );
 };
 

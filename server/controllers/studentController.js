@@ -4,8 +4,24 @@ const storage = require('../storage');
 // Public: Get all success stories
 exports.getAllStories = async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM success_stories ORDER BY created_at DESC');
-        res.json(result.rows);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 9;
+        const offset = (page - 1) * limit;
+
+        const countResult = await pool.query('SELECT COUNT(*) FROM success_stories');
+        const total = parseInt(countResult.rows[0].count);
+
+        const result = await pool.query('SELECT * FROM success_stories ORDER BY created_at DESC LIMIT $1 OFFSET $2', [limit, offset]);
+
+        res.json({
+            data: result.rows,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
