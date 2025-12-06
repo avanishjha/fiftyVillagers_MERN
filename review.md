@@ -1,686 +1,609 @@
-Nice — I finished a full, hands-for-hands deep review of your repo that I extracted (`fiftyVillagers_MERN-master`). Below you’ll find:
+# Fifty Villagers - Code Review & Deployment Guide
 
-* a short architecture summary,
-* what’s already solid,
-* critical issues (security / reliability / correctness) — **must fix**,
-* medium / nice-to-fix issues,
-* production improvements missing,
-* exact, copy-paste **code patches** (multiple files) you can drop in to fix the critical issues and scaffold the exam features,
-* a migration (SQL) to add application/result tables for the exam flow,
-* a deployment plan (Docker + docker-compose + CI snippet), and
-* a prioritized TODO list.
-
-I kept the recommendations concrete and ready-to-apply. If you want, I’ll create a PR branch with these patches—say “create PR” and I’ll output the files to drop in.
+> **Generated:** December 6, 2025  
+> **Version:** 1.0.0
 
 ---
 
-# 1) Quick architecture summary (what I saw)
+## Table of Contents
 
-* **Frontend**: Vite + React in `client/`. Clean, standard structure.
-* **Backend**: Express in `server/`. Uses `pg` Pool to Postgres in `server/config/db.js`.
-
-  * Controllers: `authController.js`, `blogController.js`, `galleryController.js`
-  * Middleware: `auth.js` (JWT), `upload.js` (multer disk storage), `admin.js`
-  * Routes: `auth.js`, `blogs.js`, `gallery.js`, `upload.js`
-  * Utilities: `utils/migrate.js` runs SQL files in `server/migrations` on startup.
-* **Database**: Postgres (migrations exist in `server/migrations`).
-* **Uploads**: `server/middleware/upload.js` writes files to `server/uploads/` and `server/routes/upload.js` returns a URL `http://localhost:5000/uploads/<filename>`.
-
----
-
-# 2) Strengths (what you already did well)
-
-* Parameterized SQL queries with `pg` → good protection against SQL injection.
-* Passwords hashed with `bcrypt` and JWT authentication implemented.
-* Migrations are automated at server start (`utils/migrate.js`) — excellent.
-* Multer-based upload handling with file-type checks and file size limits.
-* Clear separation of controllers/middleware/routes.
-* Some tests present (`test_*.js`) — good sign.
+1. [Executive Summary](#executive-summary)
+2. [Architecture Overview](#architecture-overview)
+3. [Code Quality Analysis](#code-quality-analysis)
+4. [Security Audit](#security-audit)
+5. [Database Schema](#database-schema)
+6. [API Documentation](#api-documentation)
+7. [Docker Configuration](#docker-configuration)
+8. [Deployment Guide](#deployment-guide)
+9. [Cloudflare Setup](#cloudflare-setup)
+10. [Production Checklist](#production-checklist)
 
 ---
 
-# 3) Critical issues (must fix first)
+## Executive Summary
 
-These affect security, production readiness, or correctness.
+**Fifty Villagers** is a MERN-stack education portal for scholarship applications, featuring:
 
-1. **Hardcoded upload URL + Host assumption**
+- **Student Portal**: Registration, application submission, payment, admit card download
+- **Admin Dashboard**: Application management, blog/gallery CMS, success stories
+- **Public Site**: Home, blogs, gallery, success stories
 
-   * `server/routes/upload.js` returns `http://localhost:5000/uploads/<file>` — breaks in prod and leaks port/host config.
-   * **Fix:** Build URLs from `process.env.BASE_URL` or `req.get('host')` and support HTTPS.
+### Tech Stack
 
-2. **No security middleware**
-
-   * Missing `helmet`, request rate limiting (`express-rate-limit`), and request logging.
-   * Public `cors()` used without allowed origins — allows any origin → risk for cookies / CSRF etc.
-   * **Fix:** Add `helmet()`, `express-rate-limit` with reasonable defaults, and restrict CORS to env-configured origins.
-
-3. **No health/readiness endpoint**
-
-   * Orchestrators and uptime monitors expect `/health` or `/healthz`. Add one that checks DB connectivity.
-
-4. **Uploads: path / file serving hardening**
-
-   * Files are served from `server/uploads` but filenames are generated from original extension — validate and sanitize more carefully; ensure no path traversal risk (multer diskStorage handles path but be safe).
-   * Not storing content-type or checking image dimensions — attackers could upload malicious files disguised as images.
-   * **Fix:** Return signed filenames and store metadata; consider using `file-type` library to double-check MIME; store uploads via storage adapter (local or S3).
-
-5. **No central error handler / inconsistent error responses**
-
-   * Several controllers `res.status(500).send('Server Error')` but no single middleware to format errors, log stack traces to Sentry, or hide details in prod.
-   * **Fix:** Add error-handling middleware and integrate Sentry or similar for prod.
-
-6. **Environment variables and secrets not validated**
-
-   * `server/config/db.js` uses `process.env.*` without validation. Missing required env var checks could crash in prod or fallback silently.
-   * **Fix:** Add `joi`/`envalid`/`zod` to validate required env vars at startup and exit with helpful message if absent.
-
-7. **Multer config writes to a folder inside the project**
-
-   * If you scale to multiple instances, files will not be available across instances.
-   * **Fix:** Abstract storage behind adapter `local` vs `s3`; use S3 or networked volume in prod.
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18 + Vite + Tailwind CSS |
+| Backend | Express 5 + Node.js |
+| Database | PostgreSQL |
+| Auth | JWT (5-day expiry) |
+| Payments | Razorpay |
+| File Storage | Local (S3-ready adapter) |
+| Logging | Winston |
 
 ---
 
-# 4) Medium issues / improvements
+## Architecture Overview
 
-* Logging: add `morgan` for request logs, and structured logs (JSON) for production.
-* Rate limits: apply per-IP and per-route limits, especially on login/register/upload.
-* Use `express-validator` (or Zod) to validate request bodies (register/login/blog posts).
-* JWT expiry is 5 days — consider short expiry and refresh tokens if you care about security.
-* CSRF: if you plan to use cookies, protect with CSRF tokens. If using SPA JWT in Authorization header, okay.
-* Consistent responses: use API envelope `{ ok, data, error }`.
-* Tests: expand tests to cover uploads, RBAC middleware, and DB migrations.
-
----
-
-# 5) Missing production features you should add
-
-* HTTPS (handled by hosting), domain via env `BASE_URL`.
-* Health check endpoint.
-* Backups: automated Postgres backups (managed DB).
-* Secrets management: do not place secrets in repo; add `.env.example`.
-* Dockerfiles and docker-compose for local and production (I will provide).
-* CI pipeline that runs migrations safely (I will provide GH Actions snippet).
-* CDN in front of images (Cloudflare / CloudFront) and set `Cache-Control`.
-
----
-
-# 6) File-level quick notes (from files I inspected)
-
-* `server/middleware/auth.js` — uses `req.header('Authorization')?.replace('Bearer ','')` — fine but `.replace` on undefined safe because optional chaining used. Good.
-* `server/routes/upload.js` — returns hardcoded localhost URL — **critical**.
-* `server/middleware/upload.js` — uses `multer.diskStorage` and a filename generator; checks mimetype for image/pdf — good baseline but add more validation.
-
----
-
-# 7) Exact code patches (copy/paste these into your repo)
-
-> Apply these patches in the indicated files (I give full file contents for replacement or new files). I prioritized fixes for the critical issues first.
-
----
-
-### 7.1 — `server/server.js` (replace or patch to add security, health, logging)
-
-**Replace the top of `server/server.js` with this (or integrate pieces):**
-
-```js
-// server/server.js (top portion)
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const morgan = require('morgan');
-const path = require('path');
-require('dotenv').config();
-const migrate = require('./utils/migrate');
-const { pool } = require('./config/db');
-
-const app = express();
-const PORT = process.env.PORT || 5000;
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
-
-// Basic middleware
-app.use(helmet());
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true }));
-
-// Logging
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-
-// CORS - restrict in production
-app.use(cors({
-  origin: FRONTEND_ORIGIN,
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-}));
-
-// Rate limiter - apply globally (tune limits to your needs)
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // limit each IP to 300 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
-
-// Serve static uploads (ensure uploads path is configurable)
-const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-app.use('/uploads', express.static(uploadsDir, { maxAge: '30d' }));
-
-// Health endpoint - checks DB connection
-app.get('/health', async (req, res) => {
-  try {
-    await pool.query('SELECT 1'); // quick DB ping
-    res.json({ status: 'ok', db: 'ok' });
-  } catch (err) {
-    res.status(500).json({ status: 'fail', db: 'error' });
-  }
-});
-
-// (rest of file continues - routers should be mounted below)
+```mermaid
+graph TB
+    subgraph Client
+        A[React SPA] --> B[Vite Dev Server]
+        A --> C[Axios HTTP Client]
+    end
+    
+    subgraph Server
+        D[Express.js] --> E[Routes]
+        E --> F[Controllers]
+        F --> G[PostgreSQL]
+        F --> H[Storage Adapter]
+    end
+    
+    subgraph External
+        I[Razorpay]
+        J[S3 / Local Storage]
+    end
+    
+    C --> D
+    F --> I
+    H --> J
 ```
 
-**Notes:**
+### Directory Structure
 
-* Add `helmet`, `morgan`, `express-rate-limit`. Install packages:
-
-  ```bash
-  npm i helmet morgan express-rate-limit
-  ```
-
----
-
-### 7.2 — `server/routes/upload.js` — return configurable URL
-
-**Replace function that responds with URL with this snippet:**
-
-```js
-// server/routes/upload.js (inside POST handler)
-const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-res.json({
-  msg: 'File uploaded successfully',
-  file: {
-    filename: req.file.filename,
-    mimetype: req.file.mimetype,
-    size: req.file.size
-  },
-  url: `${baseUrl}/uploads/${encodeURIComponent(req.file.filename)}`
-});
 ```
-
-**Why:** Use `BASE_URL` or detected host; avoids hardcoded localhost.
-
-Add `BASE_URL` to `.env` in prod (e.g. `https://app.example.com`).
-
----
-
-### 7.3 — `server/middleware/upload.js` — strengthen file checks
-
-**Replace file filter with detection using `file-type` and sanitize filename**
-
-Install `file-type` and `sanitize-filename`:
-
-```bash
-npm i file-type sanitize-filename
-```
-
-**Updated `upload.js` (only the relevant parts shown):**
-
-```js
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const FileType = require('file-type');
-const sanitize = require('sanitize-filename');
-
-// Ensure uploads directory exists
-const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// storage config same as before; but sanitize filename:
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`;
-    cb(null, sanitize(name));
-  }
-});
-
-// file filter - basic mime check (and additional validation later)
-const fileFilter = (req, file, cb) => {
-  // allow images and pdfs
-  const allowed = /jpeg|jpg|png|gif|webp|svg|pdf/;
-  if (allowed.test(file.mimetype) || allowed.test(path.extname(file.originalname).toLowerCase())) {
-    return cb(null, true);
-  }
-  cb(new Error('Only images and PDFs are allowed!'), false);
-};
-
-const upload = multer({
-    storage: storage,
-    fileFilter: fileFilter,
-    limits: { fileSize: parseInt(process.env.MAX_UPLOAD_MB || 5) * 1024 * 1024 },
-});
-
-module.exports = upload;
-```
-
-**Note:** You can add a post-upload check to inspect magic bytes using `file-type.fromFile(filepath)` and delete files that don't match allowed types. This prevents spoofed MIME types.
-
----
-
-### 7.4 — Add central error handler middleware (new file)
-
-Create `server/middleware/errorHandler.js`:
-
-```js
-// server/middleware/errorHandler.js
-module.exports = function (err, req, res, next) {
-  console.error(err);
-  if (res.headersSent) return next(err);
-  const status = err.status || 500;
-  const message = process.env.NODE_ENV === 'production' ? 'Server Error' : (err.message || 'Server Error');
-  res.status(status).json({ error: message });
-};
-```
-
-Mount it in `server.js` as the last middleware:
-
-```js
-const errorHandler = require('./middleware/errorHandler');
-app.use(errorHandler);
+├── client/                 # React Frontend
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── pages/          # Route pages (public/student/admin)
+│   │   ├── layouts/        # Layout wrappers
+│   │   └── context/        # React Context (Auth)
+│   └── dist/               # Production build
+│
+├── server/                 # Express Backend
+│   ├── config/             # DB, Logger, Env validation
+│   ├── controllers/        # Business logic (7 files)
+│   ├── middleware/         # Auth, Upload, Error handling
+│   ├── routes/             # API endpoints (8 files)
+│   ├── migrations/         # SQL schema
+│   ├── storage/            # File upload adapter
+│   └── utils/              # Migration runner
 ```
 
 ---
 
-### 7.5 — Add `.env.example` (new file)
+## Code Quality Analysis
 
-Create `.env.example` in `server/` with required keys:
+### Strengths ✅
 
-```
-PORT=5000
-BASE_URL=http://localhost:5000
-FRONTEND_ORIGIN=http://localhost:3000
+| Area | Details |
+|------|---------|
+| **Modern Stack** | Express 5, React 18, ES Modules |
+| **Security** | Helmet, CORS, Rate Limiting, Input Validation |
+| **Logging** | Winston with structured JSON logs |
+| **Error Handling** | Centralized error middleware |
+| **File Uploads** | Sanitized filenames, MIME validation |
+| **Storage** | Pluggable adapter (local/S3) |
+| **Pagination** | Implemented on all list endpoints |
 
-DB_USER=postgres
-DB_PASSWORD=changeme
-DB_HOST=db
-DB_PORT=5432
-DB_NAME=appdb
+### Areas for Improvement ⚠️
 
-JWT_SECRET=replace_this_with_strong_secret
-
-UPLOAD_DIR=/data/uploads
-STORAGE_DRIVER=local   # change to "s3" for production
-MAX_UPLOAD_MB=5
-```
-
----
-
-### 7.6 — Storage adapter (new file) — `server/storage/index.js`
-
-Create a pluggable storage adapter so you can swap to S3 later without changing upload flow:
-
-```js
-// server/storage/index.js
-const fs = require('fs');
-const path = require('path');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-
-const DRIVER = process.env.STORAGE_DRIVER || 'local';
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
-
-async function uploadLocalFromFile(filepath, filename) {
-  // ensure upload dir exists
-  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-  // If file already in uploads, return url
-  const baseUrl = process.env.BASE_URL || '';
-  return { url: `${baseUrl}/uploads/${encodeURIComponent(filename)}`, filename };
-}
-
-async function uploadS3FromBuffer(buffer, filename, contentType) {
-  const s3 = new S3Client({ region: process.env.AWS_REGION });
-  const cmd = new PutObjectCommand({
-    Bucket: process.env.S3_BUCKET,
-    Key: `uploads/${filename}`,
-    Body: buffer,
-    ContentType: contentType,
-    ACL: 'public-read',
-  });
-  await s3.send(cmd);
-  return { url: `https://${process.env.S3_BUCKET}.s3.amazonaws.com/uploads/${encodeURIComponent(filename)}`, filename };
-}
-
-module.exports = {
-  uploadLocalFromFile,
-  uploadS3FromBuffer,
-  DRIVER,
-};
-```
-
-**Why:** This keeps your code ready to swap drivers. When you later implement S3 uploading from buffer, change `STORAGE_DRIVER` to `s3`.
+| Issue | Severity | Recommendation |
+|-------|----------|----------------|
+| No automated tests | Medium | Add Jest/Vitest test suites |
+| Console.log in production | Low | Remove or replace with logger |
+| No API versioning | Low | Consider `/api/v1/` prefix |
+| No refresh tokens | Medium | Implement token refresh flow |
+| Missing TypeScript | Low | Consider migration for type safety |
 
 ---
 
-### 7.7 — Update `server/routes/upload.js` to use adapter & better response
+## Security Audit
 
-```js
-const express = require('express');
-const router = express.Router();
-const upload = require('../middleware/upload');
-const auth = require('../middleware/auth');
-const storage = require('../storage'); // adjust path if needed
-const path = require('path');
-const fs = require('fs');
+### Implemented ✅
 
-router.post('/', auth, upload.single('file'), async (req, res, next) => {
-  try {
-    if (!req.file) return res.status(400).json({ msg: 'No file uploaded' });
+- [x] **Helmet** - Security headers enabled
+- [x] **CORS** - Restricted to FRONTEND_ORIGIN
+- [x] **Rate Limiting** - 300 req/15min global, 20/15min for auth
+- [x] **Input Validation** - express-validator on auth routes
+- [x] **Password Hashing** - bcrypt with salt rounds
+- [x] **JWT Auth** - Secure token-based authentication
+- [x] **File Upload Validation** - MIME type + extension checks
+- [x] **Filename Sanitization** - sanitize-filename library
 
-    // if local driver, file already on disk; return base url
-    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-    const url = `${baseUrl}/uploads/${encodeURIComponent(req.file.filename)}`;
+### Recommendations 📋
 
-    // If S3 driver wanted: implement reading file buffer and uploading to S3 then remove local file
+1. **Add Magic Byte Validation**
+   ```javascript
+   const { fileTypeFromBuffer } = require('file-type');
+   const buffer = fs.readFileSync(file.path);
+   const type = await fileTypeFromBuffer(buffer);
+   if (!type || !['image/jpeg', 'image/png'].includes(type.mime)) {
+       throw new Error('Invalid file type');
+   }
+   ```
 
-    res.json({
-      msg: 'File uploaded successfully',
-      file: {
-        filename: req.file.filename,
-        mimetype: req.file.mimetype,
-        size: req.file.size
-      },
-      url
-    });
-  } catch (err) {
-    next(err);
-  }
-});
+2. **Implement HTTPS Only**
+   ```javascript
+   app.use((req, res, next) => {
+       if (req.headers['x-forwarded-proto'] !== 'https') {
+           return res.redirect(`https://${req.headers.host}${req.url}`);
+       }
+       next();
+   });
+   ```
 
-module.exports = router;
-```
-
----
-
-### 7.8 — Add health check and graceful shutdown (in `server/server.js`, earlier we added /health)
-
-Ensure server closes DB gracefully on SIGTERM:
-
-```js
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  await pool.end();
-  process.exit(0);
-});
-```
+3. **Add CSP Headers**
+   ```javascript
+   app.use(helmet.contentSecurityPolicy({
+       directives: {
+           defaultSrc: ["'self'"],
+           scriptSrc: ["'self'", "'unsafe-inline'"],
+           styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
+       }
+   }));
+   ```
 
 ---
 
-# 8) SQL migration to add exam-related tables (drop-in file)
+## Database Schema
 
-Create a new migration file `server/migrations/003_exam_tables.sql` with:
+### Entity Relationship Diagram
 
-```sql
--- 003_exam_tables.sql
-CREATE TABLE IF NOT EXISTS students (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  phone TEXT,
-  dob DATE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS applications (
-  id SERIAL PRIMARY KEY,
-  student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
-  status TEXT NOT NULL DEFAULT 'draft', -- draft/submitted/under_review/approved/rejected
-  payment_status TEXT DEFAULT 'unpaid',
-  admit_url TEXT,
-  submitted_at TIMESTAMP WITH TIME ZONE,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS documents (
-  id SERIAL PRIMARY KEY,
-  application_id INTEGER REFERENCES applications(id) ON DELETE CASCADE,
-  type TEXT NOT NULL,
-  filename TEXT NOT NULL,
-  url TEXT NOT NULL,
-  uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS results (
-  id SERIAL PRIMARY KEY,
-  application_id INTEGER UNIQUE REFERENCES applications(id) ON DELETE CASCADE,
-  score NUMERIC,
-  rank INTEGER,
-  published_at TIMESTAMP WITH TIME ZONE
-);
+```mermaid
+erDiagram
+    USERS ||--o{ APPLICATIONS : submits
+    USERS ||--o{ BLOGS : authors
+    APPLICATIONS ||--o| EXAM_CENTERS : assigned_to
+    APPLICATIONS ||--o| RESULTS : has
+    BLOGS ||--o{ BLOG_COMMENTS : has
+    BLOGS ||--o{ BLOG_REACTIONS : has
+    GALLERY_SECTIONS ||--o{ GALLERY_IMAGES : contains
+    
+    USERS {
+        int id PK
+        string name
+        string email UK
+        string password_hash
+        string role
+    }
+    
+    APPLICATIONS {
+        int id PK
+        int student_id FK
+        string status
+        string roll_number UK
+        int exam_center_id FK
+    }
+    
+    EXAM_CENTERS {
+        int id PK
+        string name
+        string location
+        int capacity
+        timestamp exam_date
+    }
 ```
 
-Put this SQL file in `server/migrations/` — your `utils/migrate.js` will pick it up.
+### Tables Summary
+
+| Table | Purpose | Records |
+|-------|---------|---------|
+| `users` | Student/Admin accounts | - |
+| `applications` | Scholarship applications | - |
+| `exam_centers` | Physical exam locations | 1 (seeded) |
+| `results` | Exam scores & rankings | - |
+| `blogs` | CMS blog posts | - |
+| `gallery_sections` | Photo gallery categories | - |
+| `success_stories` | Alumni testimonials | - |
 
 ---
 
-# 9) Express routes skeleton for exam flow (drop these new routes)
+## API Documentation
 
-Create `server/routes/applications.js`:
+See [API_USAGE.md](file:///d:/Fify%20Villagers/server/API_USAGE.md) for detailed endpoint documentation.
 
-```js
-const express = require('express');
-const router = express.Router();
-const auth = require('../middleware/auth');
-const { pool } = require('../config/db');
+### Quick Reference
 
-// Create application (student must exist or create new student record)
-router.post('/', auth, async (req, res, next) => {
-  try {
-    const { studentId, dob, /* other fields */ } = req.body;
-    const { rows } = await pool.query(
-      `INSERT INTO applications (student_id, submitted_at, updated_at, status) VALUES ($1, now(), now(), 'submitted') RETURNING *`,
-      [studentId]
-    );
-    res.json(rows[0]);
-  } catch (err) { next(err); }
-});
-
-// Add uploaded document record (client calls upload first)
-router.post('/:id/documents', auth, async (req, res, next) => {
-  try {
-    const appId = req.params.id;
-    const { type, filename, url } = req.body;
-    const { rows } = await pool.query(
-      `INSERT INTO documents (application_id, type, filename, url) VALUES ($1,$2,$3,$4) RETURNING *`,
-      [appId, type, filename, url]
-    );
-    res.json(rows[0]);
-  } catch (err) { next(err); }
-});
-
-module.exports = router;
-```
-
-Mount in `server.js`: `app.use('/api/applications', require('./routes/applications'));`
-
-Add admin routes for approve/reject that set `status='approved'` and optionally call a PDF generation job.
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/register` | No | Register student |
+| POST | `/api/auth/login` | No | Login |
+| GET | `/api/auth/me` | JWT | Get current user |
+| GET | `/api/applications/my-application` | JWT | Get student's app |
+| POST | `/api/payment/create-order` | JWT | Create Razorpay order |
+| GET | `/api/student/stories` | No | List success stories |
+| GET | `/api/blogs` | No | List blog posts |
+| GET | `/api/gallery` | No | List gallery |
 
 ---
 
-# 10) Admit card PDF generation (advice & snippet)
+## Docker Configuration
 
-We discussed Puppeteer earlier — for production consider:
+### Dockerfile (Server)
 
-* Running a headless Chrome layer (use `browserless` or install chromium deps in Docker).
-* Or render HTML server-side and convert to PDF using `puppeteer-core` in a specialized container.
+Create `server/Dockerfile`:
 
-Small snippet (create `server/utils/admitCard.js`):
+```dockerfile
+FROM node:20-alpine
 
-```js
-const puppeteer = require('puppeteer');
+WORKDIR /app
 
-async function createAdmitCard(app, student) {
-  const browser = await puppeteer.launch({ args: ['--no-sandbox','--disable-setuid-sandbox'] });
-  const page = await browser.newPage();
-  const html = `<html><body><h1>Admit Card</h1><p>${student.name}</p></body></html>`;
-  await page.setContent(html, { waitUntil: 'networkidle2' });
-  const buffer = await page.pdf({ format: 'A4' });
-  await browser.close();
-  return buffer;
-}
-module.exports = createAdmitCard;
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy source
+COPY . .
+
+# Create uploads directory
+RUN mkdir -p uploads
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:5000/health || exit 1
+
+# Start
+CMD ["node", "server.js"]
 ```
 
-Then upload the `buffer` to storage adapter (S3/local) and save `admit_url` to `applications` table.
+### Dockerfile (Client)
 
----
-
-# 11) Docker + docker-compose (development + prod-ready)
-
-**server/Dockerfile** (place in `server/`):
+Create `client/Dockerfile`:
 
 ```dockerfile
 FROM node:20-alpine AS builder
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run build || true
+RUN npm run build
 
-FROM node:20-alpine
-WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=builder /app ./
-RUN mkdir -p uploads
-EXPOSE 5000
-CMD ["node", "server.js"]
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
 ```
 
-**client/Dockerfile** (serve built React with nginx) — I provided earlier; use a multi-stage build.
+### docker-compose.yml
 
-**docker-compose.yml** (top-level for dev):
+Create `docker-compose.yml` at project root:
 
 ```yaml
-version: "3.8"
+version: '3.8'
+
 services:
   db:
-    image: postgres:15
+    image: postgres:15-alpine
     environment:
+      POSTGRES_DB: fifty_villagers
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: appdb
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - db-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   server:
     build: ./server
     environment:
-      - DB_USER=postgres
-      - DB_PASSWORD=password
+      - NODE_ENV=production
+      - PORT=5000
       - DB_HOST=db
       - DB_PORT=5432
-      - DB_NAME=appdb
-      - JWT_SECRET=devsecret
-      - BASE_URL=http://localhost:5000
-      - FRONTEND_ORIGIN=http://localhost:3000
-    volumes:
-      - ./server/uploads:/app/uploads
-    depends_on:
-      - db
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=fifty_villagers
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN}
+      - BASE_URL=${BASE_URL}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
     ports:
       - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
 
   client:
-    build: ./client
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: ${VITE_API_URL}
     ports:
-      - "3000:80"
+      - "80:80"
     depends_on:
       - server
 
 volumes:
-  db-data:
+  postgres_data:
+  uploads:
+```
+
+### nginx.conf (Client)
+
+Create `client/nginx.conf`:
+
+```nginx
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript;
+
+    # SPA routing
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API proxy
+    location /api/ {
+        proxy_pass http://server:5000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Static file caching
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
 ```
 
 ---
 
-# 12) GitHub Actions (CI) simple snippet to run migrations and tests
+## Deployment Guide
 
-`.github/workflows/ci.yml`:
+### Prerequisites
 
-```yaml
-name: CI
-on: [push]
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: appdb
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install server deps
-        working-directory: server
-        run: npm ci
-      - name: Run migrations
-        working-directory: server
-        env:
-          DB_USER: postgres
-          DB_PASSWORD: password
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: appdb
-        run: node utils/migrate.js
-      - name: Run server tests
-        working-directory: server
-        run: npm test || true
+- [ ] VPS/Cloud Server (Ubuntu 22.04+ recommended)
+- [ ] Domain name configured
+- [ ] PostgreSQL 15+ installed (or use Docker)
+- [ ] Node.js 20+ installed
+- [ ] Nginx installed (for reverse proxy)
+
+### Step 1: Server Setup
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+
+# Install Docker Compose
+sudo apt install docker-compose-plugin
 ```
 
-For deploy, build/push Docker images and trigger Render/Cloud Run as you prefer.
+### Step 2: Clone & Configure
+
+```bash
+# Clone repository
+git clone https://github.com/your-repo/fifty-villagers.git
+cd fifty-villagers
+
+# Create production env file
+cp server/.env.example server/.env
+nano server/.env  # Edit with production values
+```
+
+### Step 3: Production Environment Variables
+
+```env
+# Server .env
+NODE_ENV=production
+PORT=5000
+BASE_URL=https://api.yoursite.com
+
+# Database
+DB_HOST=db
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=<STRONG_PASSWORD>
+DB_NAME=fifty_villagers
+
+# Auth
+JWT_SECRET=<64_CHAR_RANDOM_STRING>
+
+# CORS
+FRONTEND_ORIGIN=https://yoursite.com
+
+# Storage
+STORAGE_DRIVER=local
+UPLOAD_DIR=uploads
+MAX_UPLOAD_MB=5
+
+# Razorpay (Live Keys)
+RAZORPAY_KEY_ID=rzp_live_xxxxx
+RAZORPAY_KEY_SECRET=xxxxx
+```
+
+### Step 4: Build & Deploy
+
+```bash
+# Build and start containers
+docker compose up -d --build
+
+# Check logs
+docker compose logs -f
+
+# Run migrations (if not auto-run)
+docker compose exec server node run_migrations.js
+```
+
+### Step 5: SSL with Certbot
+
+```bash
+# Install Certbot
+sudo apt install certbot python3-certbot-nginx
+
+# Get certificate
+sudo certbot --nginx -d yoursite.com -d api.yoursite.com
+
+# Auto-renewal test
+sudo certbot renew --dry-run
+```
 
 ---
 
-# 13) Prioritized TODO list (1 = highest priority)
+## Cloudflare Setup
 
-1. **Fix upload URL and BASE_URL env usage** (critical).
-2. **Add security middleware**: `helmet`, `express-rate-limit`, restrict CORS.
-3. **Add central error handler + logging** (morgan, Sentry).
-4. **Add /health endpoint and graceful shutdown.**
-5. **Create `.env.example` and validate required ENV at startup.**
-6. **Implement storage adapter and migrate away from tight coupling to local disk** (or at least plan S3).
-7. **Harden upload pipeline**: verify file-type magic bytes and sanitize filenames.
-8. **Add migrations for exam tables and create application routes.**
-9. **Add Dockerfiles + docker-compose and CI action to run migrations in CI.**
-10. **Add admin UI pages in client for reviewing applications and publishing results.**
+### DNS Configuration
+
+| Type | Name | Content | Proxy |
+|------|------|---------|-------|
+| A | @ | YOUR_SERVER_IP | ✅ Proxied |
+| A | api | YOUR_SERVER_IP | ✅ Proxied |
+| CNAME | www | yoursite.com | ✅ Proxied |
+
+### SSL/TLS Settings
+
+1. Navigate to **SSL/TLS** → **Overview**
+2. Set mode to **Full (strict)**
+3. Enable **Always Use HTTPS**
+4. Enable **Automatic HTTPS Rewrites**
+
+### Page Rules
+
+| URL Pattern | Setting |
+|-------------|---------|
+| `*yoursite.com/api/*` | Cache Level: Bypass |
+| `*yoursite.com/uploads/*` | Cache Level: Standard, Edge TTL: 1 month |
+| `*yoursite.com/*` | Browser Integrity Check: On |
+
+### Firewall Rules
+
+1. **Block Tor** (optional): `ip.geoip.is_anonymous_proxy eq true` → Block
+2. **Challenge Bots**: `cf.client.bot` → JS Challenge
+3. **Rate Limit**: 100 requests per 10 seconds per IP
+
+### Caching
+
+1. **Browser Cache TTL**: 4 hours
+2. **Always Online**: Enabled
+3. **Development Mode**: Off (for production)
 
 ---
 
-# 14) How to integrate exam features safely (step-by-step plan)
+## Production Checklist
 
-1. Add migration `003_exam_tables.sql` (above) and run it (migrate.js will run automatically).
-2. Add `server/routes/applications.js` and mount it under `/api/applications`.
-3. Reuse `upload` route to store files; on upload, create a `documents` record that points to `applications.id`.
-4. Add admin endpoints to approve/reject and generate admit cards via `createAdmitCard` util that uploads to storage adapter and saves `admit_url`.
-5. Add client pages: Apply form (create application → upload files → attach docs → submit) and Admin page (list applications, view docs, approve).
-6. For backups, set up nightly `pg_dump` or use managed provider backups.
+### Pre-Deployment ✅
+
+- [ ] All environment variables set
+- [ ] Database migrations tested
+- [ ] Admin password changed from default
+- [ ] JWT_SECRET is a strong random string (64+ chars)
+- [ ] Razorpay switched to Live keys
+- [ ] CORS restricted to production domain
+- [ ] Console.log statements removed
+- [ ] Error messages don't expose stack traces
+
+### Security ✅
+
+- [ ] HTTPS enforced
+- [ ] Helmet headers configured
+- [ ] Rate limiting enabled
+- [ ] Input validation on all endpoints
+- [ ] File upload restrictions in place
+- [ ] SQL injection protection (parameterized queries)
+
+### Performance ✅
+
+- [ ] Production build (`npm run build`)
+- [ ] Gzip compression enabled
+- [ ] Static assets cached (30 days)
+- [ ] Database indexes created
+- [ ] Images optimized (WebP)
+
+### Monitoring ✅
+
+- [ ] Health endpoint working (`/health`)
+- [ ] Error logging to files (Winston)
+- [ ] Uptime monitoring (UptimeRobot/Pingdom)
+- [ ] Database backups scheduled
+
+### Post-Deployment ✅
+
+- [ ] SSL certificate valid
+- [ ] All routes accessible
+- [ ] Payment flow tested (test transaction)
+- [ ] Email notifications working (if implemented)
+- [ ] Mobile responsiveness verified
 
 ---
 
+## Maintenance Commands
 
+```bash
+# View logs
+docker compose logs -f server
+
+# Restart services
+docker compose restart
+
+# Database backup
+docker compose exec db pg_dump -U postgres fifty_villagers > backup.sql
+
+# Database restore
+cat backup.sql | docker compose exec -T db psql -U postgres fifty_villagers
+
+# Update deployment
+git pull
+docker compose up -d --build
+
+# Clean up
+docker system prune -a
+```
+
+---
+
+## Support & Resources
+
+- **PostgreSQL Docs**: https://www.postgresql.org/docs/
+- **Express.js Guide**: https://expressjs.com/
+- **Vite Documentation**: https://vitejs.dev/
+- **Cloudflare Docs**: https://developers.cloudflare.com/
+- **Docker Compose**: https://docs.docker.com/compose/
+
+---
+
+*Review completed. Project is MVP-ready for deployment.*
